@@ -1,0 +1,3 @@
+[submodule "dotNETLemmy"]
+	path = dotNETLemmy
+	url = https://github.com/IsaaacD/dotNETLemmy

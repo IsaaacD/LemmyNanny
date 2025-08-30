@@ -19,9 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="dotNETLemmy.API">
-      <HintPath>..\..\dotNETLemmy\dotNETLemmy.API\bin\Debug\net8.0\dotNETLemmy.API.dll</HintPath>
-    </Reference>
+    <ProjectReference Include="..\dotNETLemmy\dotNETLemmy.API\dotNETLemmy.API.csproj" />
   </ItemGroup>
 
   <ItemGroup>
