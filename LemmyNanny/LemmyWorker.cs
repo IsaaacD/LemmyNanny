@@ -42,22 +42,22 @@ namespace LemmyNanny
 
         public string OllamaUrl { get; set; }
         public string OllamaModel { get; set; }
+
         private HttpClient _picsHttpClient = new HttpClient();
 
         private readonly ILemmyHttpClient _lemmyHttpClient;
+        private readonly HistoryManager _historyManager;
 
         private string? _lastPage = string.Empty;
-        private List<ProcessedPost> _seenPosts = new();
 
-        public LemmyWorker(ILemmyHttpClient lemmyHttpClient) =>
-            _lemmyHttpClient = lemmyHttpClient;
-
-        public class ProcessedPost
+        public LemmyWorker(ILemmyHttpClient lemmyHttpClient, HistoryManager manager)
         {
-            public int PostId { get; set; }
-            public bool Reported { get; set; }
-            public string? Reason { get; set; }
+            _lemmyHttpClient = lemmyHttpClient;
+            _historyManager = manager;
         }
+            
+
+
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
             var ollamaHttpClient = new HttpClient() { BaseAddress = new Uri(OllamaUrl), Timeout= TimeSpan.FromMinutes(10) };
@@ -67,56 +67,28 @@ namespace LemmyNanny
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                var form = new GetPostsForm();
+                var form = new GetPostsForm() {  Sort=dotNETLemmy.API.Types.Enums.SortType.Hot, Type= dotNETLemmy.API.Types.Enums.ListingType.All};
                 if (!string.IsNullOrEmpty(_lastPage)) { 
                     form.PageCursor = _lastPage;
                     AnsiConsole.WriteLine($"set form.PageCursor={_lastPage}");
                 }
                 var getPostsResponse = await _lemmyHttpClient.GetPosts(form, cancellationToken);
                 _lastPage = getPostsResponse.NextPage;
-                AnsiConsole.WriteLine($"Checking {getPostsResponse.Posts.Length} posts");
+                AnsiConsole.WriteLine($"Checking {getPostsResponse.Posts?.Length ?? 0} posts");
                 foreach (var postView in getPostsResponse.Posts)
                 {
                     var post = postView;
-                    var firstSeen = _seenPosts.FirstOrDefault(o => o.PostId == post.Post.Id);
-                    if (firstSeen != null)
-                    {
-                        AnsiConsole.WriteLine($"Already seen post #{post.Post.Id}: {firstSeen.Reason}");
-                    }
+                    var hasRecord = _historyManager.HasRecord(post.Post.Id, out _);
                     var newSeen = new ProcessedPost { PostId = post.Post.Id };
-                    _seenPosts.Add(newSeen);
+
                     AnsiConsole.WriteLine("");
                     var postPrompt = $@"You are a moderator on a social media forum, the following is a post that needs to be vetted for community guideline violations. Please output only 'Yes' or 'No' as the answer. If the answer is 'Yes', expand on what the guideline violation could be.";
                     var chat = new Chat(ollama, postPrompt) { Think = false };
                     IAsyncEnumerable<string>? chatResults = null;
                     var postInfo = $"PostId:{post.Post.Id}\r\nTitle: {post.Post.Name}\r\nBody: {post.Post.Body}";
                     AnsiConsole.WriteLine(postInfo);
-                    var alreadySeen = false;
-                    using (var connection = new SqliteConnection(SqliteConnection))
-                    {
-                        connection.Open();
 
-                        var command = connection.CreateCommand();
-                        command.CommandText =
-                        @"
-                            SELECT timestamp
-                            FROM seen_posts
-                            WHERE post_id = $id
-                        ";
-                        command.Parameters.AddWithValue("$id", post.Post.Id);
-
-                        using (var reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                // exists
-                                var timestamp = reader.GetString(0);
-                                AnsiConsole.WriteLine($"Already seen post {post.Post.Id} @ {timestamp}. Skipping to next one.");
-                                alreadySeen = true;
-                            }
-                        }
-                    }
-                    if (!alreadySeen)
+                    if (!hasRecord)
                     {
                         try
                         {
@@ -163,8 +135,8 @@ namespace LemmyNanny
                             AnsiConsole.MarkupInterpolated($"[{AiTextColor}]{answerToken}[/]");
                         }
                         var isNo = resultOutput.ToString().StartsWith("No");
-                        newSeen.Reported = !isNo;
                         newSeen.Reason = resultOutput.ToString();
+                        newSeen.Url = post.Post.ApId;
                         AnsiConsole.WriteLine("");
                         if (isNo)
                         {
@@ -184,28 +156,26 @@ namespace LemmyNanny
                             var loginResponse = await _lemmyHttpClient.Login(loginForm);
 
                             var report = new CreatePostReportForm() { Auth = loginResponse.Jwt, PostId = post.Post.Id, Reason = resultOutput.ToString() };
-                            var resp = await _lemmyHttpClient.CreatePostReport(report);
-                            AnsiConsole.WriteLine($"Reported {post?.Post?.Id ?? 0}.");
+                            //var resp = await _lemmyHttpClient.CreatePostReport(report);
+                            //AnsiConsole.WriteLine($"Reported {post?.Post?.Id ?? 0}.");
                         }
 
-                        using (var connection = new SqliteConnection(SqliteConnection))
-                        {
-                            connection.Open();
-                            var command2 = connection.CreateCommand();
-                            command2.CommandText =
-                                    @$"
-                            INSERT INTO seen_posts (post_id, url, remarks, timestamp)
-                            VALUES ($id, $url, $remarks, $timestamp);
-                        ";
-                            command2.Parameters.AddWithValue("$id", post.Post.Id);
-                            command2.Parameters.AddWithValue("$url", post.Post.ApId);
-                            command2.Parameters.AddWithValue("$remarks", resultOutput.ToString());
-                            command2.Parameters.AddWithValue("$timestamp", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
-                            command2.ExecuteNonQuery();
-                        }
+
+                        _historyManager.AddRecord(newSeen);
 
                     }
+                    else
+                    {
+                        AnsiConsole.WriteLine("Waiting 1 second");
+                        await Task.Delay(1000);
+                    }
                 }
+            }
+
+            if (cancellationToken.IsCancellationRequested)
+            {
+                Console.WriteLine("Cancelled Press enter to end.");
+                Console.ReadLine();
             }
         }
     }
