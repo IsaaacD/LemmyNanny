@@ -127,7 +127,8 @@ namespace LemmyNanny
                         var resultOutput = new StringBuilder();
                         if (chatResults == null)
                         {
-                            return;
+                            AnsiConsole.WriteLine("chatResults is null. Skipping");
+                            continue;
                         }
                         await foreach (var answerToken in chatResults)
                         {
