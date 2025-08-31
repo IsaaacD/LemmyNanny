@@ -30,3 +30,10 @@ jobs:
       run: dotnet build --no-restore LemmyNanny/LemmyNanny.csproj
     - name: Test
       run: dotnet test --no-build --verbosity normal LemmyNanny/LemmyNanny.csproj
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v4.6.2
+      with:
+        # Artifact name
+        # A file, directory or wildcard pattern that describes what to upload
+        path: /home/runner/work/LemmyNanny/LemmyNanny/dotNETLemmy/dotNETLemmy.API/bin/Debug/net8.0/
+          
