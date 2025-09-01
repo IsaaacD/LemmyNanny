@@ -30,44 +30,28 @@ namespace LemmyNanny
         public static string AiTextColor { get; } = "cyan";
         public static string AiThinkTextColor { get; } = "gray";
 
-        public string BaseAddress
-        {
-            get => _lemmyHttpClient.BaseAddress;
-            set => _lemmyHttpClient.BaseAddress = value;
-        }
-
-        public string SqliteConnection { get; set; }
-        public string LemmyUserName { get; set; }
-        public string LemmyPassword { get; set; }
-
-        public string OllamaUrl { get; set; }
-        public string OllamaModel { get; set; }
-
-        private HttpClient _picsHttpClient = new HttpClient();
 
         private readonly ILemmyHttpClient _lemmyHttpClient;
         private readonly HistoryManager _historyManager;
-
+        private readonly IHttpClientFactory _clientFactory;
+        private readonly IOllamaApiClient _ollamaApiClient;
         private string? _lastPage = string.Empty;
 
-        public LemmyWorker(ILemmyHttpClient lemmyHttpClient, HistoryManager manager)
+        public LemmyWorker(ILemmyHttpClient lemmyHttpClient, HistoryManager manager, IHttpClientFactory httpClientFactory, IOllamaApiClient ollamaApiClient)
         {
             _lemmyHttpClient = lemmyHttpClient;
             _historyManager = manager;
+            _clientFactory = httpClientFactory;
+            _ollamaApiClient = ollamaApiClient;
         }
-            
-
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            var ollamaHttpClient = new HttpClient() { BaseAddress = new Uri(OllamaUrl), Timeout= TimeSpan.FromMinutes(10) };
-            var ollama = new OllamaApiClient(ollamaHttpClient);
-            ollama.SelectedModel = OllamaModel;
-            
+            var picsHttpClient = _clientFactory.CreateClient("PictrsClient");
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                var form = new GetPostsForm() {  Sort=dotNETLemmy.API.Types.Enums.SortType.Hot, Type= dotNETLemmy.API.Types.Enums.ListingType.All};
+                var form = new GetPostsForm() {  Sort=dotNETLemmy.API.Types.Enums.SortType.New, Type= dotNETLemmy.API.Types.Enums.ListingType.All};
                 if (!string.IsNullOrEmpty(_lastPage)) { 
                     form.PageCursor = _lastPage;
                     AnsiConsole.WriteLine($"set form.PageCursor={_lastPage}");
@@ -82,19 +66,20 @@ namespace LemmyNanny
                     var newSeen = new ProcessedPost { PostId = post.Post.Id };
 
                     AnsiConsole.WriteLine("");
-                    var postPrompt = $@"You are a moderator on a social media forum, the following is a post that needs to be vetted for community guideline violations. Please output only 'Yes' or 'No' as the answer. If the answer is 'Yes', expand on what the guideline violation could be.";
-                    var chat = new Chat(ollama, postPrompt) { Think = false };
+                    // var postPrompt = $@"You are a moderator on a social media forum, the following is a post that needs to be vetted for community guideline violations. Please output only 'Yes' or 'No' as the answer. If the answer is 'Yes', expand on what the guideline violation could be.";
+                    var postPrompt = "You are a moderator of a social media forum, the following is a post. Validate that the content is not illegal to host, and that it doesn't violate common community rules. Please output only 'Yes' if violation occurred or 'No' if the content is safe. After 'Yes' or 'No', expand on what the post is about and violations that occurred.";
+                    var chat = new Chat(_ollamaApiClient, postPrompt) { Think = false };
                     IAsyncEnumerable<string>? chatResults = null;
                     var postInfo = $"PostId:{post.Post.Id}\r\nTitle: {post.Post.Name}\r\nBody: {post.Post.Body}";
                     AnsiConsole.WriteLine(postInfo);
-
+                    AnsiConsole.WriteLine(post.Post.ApId);
                     if (!hasRecord)
                     {
                         try
                         {
                             if (post.Post?.Url?.Contains("/pictrs/") ?? false)
                             {
-                                var imageBytes = new[] { await _picsHttpClient.GetByteArrayAsync(post.Post.Url) };
+                                var imageBytes = new[] { await picsHttpClient.GetByteArrayAsync(post.Post.Url) };
                                 AnsiConsole.WriteLine("The following image is compressed for console view, full image goes to the model.");
                                 //AnsiConsole.Write("The following image is compressed for console view, full image goes to the model.");
                                 foreach (var consoleImage in imageBytes.Select(bytes => new CanvasImage(bytes)))
@@ -108,8 +93,6 @@ namespace LemmyNanny
                             {
                                 chatResults = chat.SendAsync(postInfo, cancellationToken);
                             }
-
-
                         }
                         catch (UnknownImageFormatException)
                         {
@@ -120,14 +103,13 @@ namespace LemmyNanny
                         }
                         catch (Exception e)
                         {
-                            AnsiConsole.WriteLine($"Failed {e.GetType()}");
-
+                            AnsiConsole.WriteLine($"Failed {e.GetType()} - {e.Message}");                           
                         }
 
                         var resultOutput = new StringBuilder();
                         if (chatResults == null)
                         {
-                            AnsiConsole.WriteLine("chatResults is null. Skipping");
+                            AnsiConsole.WriteLine($"[{ErrorTextColor}]***chatResults is null. Skipping***[/]");
                             continue;
                         }
                         await foreach (var answerToken in chatResults)
@@ -145,18 +127,18 @@ namespace LemmyNanny
                         }
                         else
                         {
-                            AnsiConsole.WriteLine($"Found 'Yes', time to report {post?.Post?.Id ?? 0} with resultOutput={resultOutput}");
+                            AnsiConsole.WriteLine($"[{AccentTextColor}]Found 'Yes', time to report {post?.Post?.Id ?? 0} with resultOutput={resultOutput}[/]");
 
 
                             var loginForm = new LoginForm
                             {
-                                UsernameOrEmail = LemmyUserName,
-                                Password = LemmyPassword
+                                UsernameOrEmail = _lemmyHttpClient.Username!,
+                                Password = _lemmyHttpClient.Password!
                             };
 
-                            var loginResponse = await _lemmyHttpClient.Login(loginForm);
+                            //var loginResponse = await _lemmyHttpClient.Login(loginForm);
 
-                            var report = new CreatePostReportForm() { Auth = loginResponse.Jwt, PostId = post.Post.Id, Reason = resultOutput.ToString() };
+                            //var report = new CreatePostReportForm() { Auth = loginResponse.Jwt, PostId = post.Post.Id, Reason = resultOutput.ToString() };
                             //var resp = await _lemmyHttpClient.CreatePostReport(report);
                             //AnsiConsole.WriteLine($"Reported {post?.Post?.Id ?? 0}.");
                         }
