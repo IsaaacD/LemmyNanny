@@ -27,7 +27,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore LemmyNanny/LemmyNanny.csproj
     - name: Build
-      run: dotnet build --no-restore LemmyNanny/LemmyNanny.csproj -p:PublishSingleFile=true --self-contained true
+      run: dotnet build --no-restore LemmyNanny/LemmyNanny.csproj
     - name: Test
       run: dotnet test --no-build --verbosity normal LemmyNanny/LemmyNanny.csproj
     - name: Upload a Build Artifact
