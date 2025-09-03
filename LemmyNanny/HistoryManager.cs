@@ -6,16 +6,107 @@ namespace LemmyNanny
 {
     public class HistoryManager
     {
-        private readonly string _dbConnection;
+        private readonly string _dbName;
 
-        public HistoryManager(string dbConnection) 
+        private string _connectionString => $"Data Source={_dbName}";
+
+        public HistoryManager(string dbName) 
         { 
-            _dbConnection = dbConnection;
+            _dbName = dbName;
+            AnsiConsole.WriteLine($"{DateTime.Now}: Connection string = {_connectionString}");
+        }
+
+        public void SetupDatabase()
+        {
+            using (var connection = new SqliteConnection(_connectionString))
+            {
+                connection.Open(); // creates db
+                var command = connection.CreateCommand();
+                command.CommandText = @"CREATE TABLE IF NOT EXISTS ""seen_posts"" (
+	                                ""post_id""	INTEGER UNIQUE,
+	                                ""url""	TEXT,
+	                                ""remarks""	TEXT,
+	                                ""timestamp""	TEXT,
+	                                PRIMARY KEY(""post_id"")
+                                )";
+                command.ExecuteNonQuery();
+
+                command.CommandText = @"CREATE TABLE IF NOT EXISTS ""stats"" (
+	                            ""yes_count""	INTEGER,
+	                            ""no_count""	INTEGER,
+	                            ""domain""	TEXT,
+	                            ""start_time""	TEXT,
+	                            ""end_time""	TEXT
+                            )";
+                command.ExecuteNonQuery();
+
+                command.CommandText = "INSERT INTO stats (start_time, yes_count, no_count) VALUES ($startime, 0, 0)";
+                command.Parameters.AddWithValue("$startime", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
+                command.ExecuteNonQuery();
+            }
+        }
+
+        public void UpdateEndTime()
+        {
+            using (var connection = new SqliteConnection(_connectionString))
+            {
+                connection.Open();
+                var command = connection.CreateCommand();
+                command.CommandText = "UPDATE stats SET end_time = $end_time";
+                command.Parameters.AddWithValue("$end_time", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
+                command.ExecuteNonQuery();
+            }
+        }
+
+        private int IncrementYesCount()
+        {
+            var value = 0;
+            using (var connection = new SqliteConnection(_connectionString))
+            {
+                connection.Open();
+                var command = connection.CreateCommand();
+                command.CommandText = "UPDATE stats SET yes_count = yes_count + 1;";
+                command.ExecuteNonQuery();
+
+                command.CommandText = "SELECT yes_count FROM stats;";
+                using (var reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        value = reader.GetInt32(0);
+                        AnsiConsole.WriteLine($"{DateTime.Now}: Incremented yes_count to {value}");
+                    }
+                }
+            }
+            return value;
+        }
+
+        private int IncrementNoCount()
+        {
+            var value = 0;
+            using (var connection = new SqliteConnection(_connectionString))
+            {
+                connection.Open();
+                var command = connection.CreateCommand();
+                command.CommandText = "UPDATE stats SET no_count = no_count + 1;";
+                command.ExecuteNonQuery();
+
+                command.CommandText = "SELECT no_count FROM stats;";
+                using (var reader = command.ExecuteReader())
+                {
+                    if (reader.Read())
+                    {
+                        value = reader.GetInt32(0);
+                        AnsiConsole.WriteLine($"{DateTime.Now}: Incremented no_count to {value}");
+                    }
+                }
+            }
+            return value;
         }
 
         public void AddRecord(ProcessedPost post)
         {
-            using (var connection = new SqliteConnection(_dbConnection))
+            using (var connection = new SqliteConnection(_connectionString))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
@@ -30,14 +121,23 @@ namespace LemmyNanny
                 command.Parameters.AddWithValue("$timestamp", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
                 command.ExecuteNonQuery();
             }
-            AnsiConsole.WriteLine($"Wrote post {post.PostId} to db.");
+            AnsiConsole.WriteLine($"{DateTime.Now}: Wrote post {post.PostId} to db.");
+
+            if (post.IsYes)
+            {
+                IncrementYesCount();
+            }
+            else
+            {
+                IncrementNoCount();
+            }
         }
 
         public bool HasRecord(int id, out string timestamp)
         {
             var alreadySeen = false;
             timestamp = string.Empty;
-            using (var connection = new SqliteConnection(_dbConnection))
+            using (var connection = new SqliteConnection(_connectionString))
             {
                 connection.Open();
 
@@ -56,7 +156,7 @@ namespace LemmyNanny
                     {
                         // exists
                         timestamp = reader.GetString(0);
-                        AnsiConsole.WriteLine($"Already seen post {id} @ {timestamp}. Skipping to next one.");
+                        AnsiConsole.WriteLine($"{DateTime.Now}: Already seen post {id} @ {timestamp}. Skipping to next one.");
                         alreadySeen = true;
                     }
                 }
@@ -70,5 +170,7 @@ namespace LemmyNanny
         public int PostId { get; set; }
         public string Url { get; set; }
         public string? Reason { get; set; }
+
+        public bool IsYes { get; set; }
     }
 }
