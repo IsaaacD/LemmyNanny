@@ -5,6 +5,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	  <PublishSingleFile>true</PublishSingleFile>
+	  <SelfContained>true</SelfContained>
+	  <RuntimeIdentifier>win-x64</RuntimeIdentifier>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,8 +20,11 @@
     <PackageReference Include="Spectre.Console" Version="0.50.0" />
     <PackageReference Include="Spectre.Console.ImageSharp" Version="0.50.0" />
   </ItemGroup>
+	<PropertyGroup>
+		<PublishSingleFile>true</PublishSingleFile>
+	</PropertyGroup>
 
-  <ItemGroup>
+	<ItemGroup>
     <ProjectReference Include="..\dotNETLemmy\dotNETLemmy.API\dotNETLemmy.API.csproj" />
   </ItemGroup>
 
@@ -32,8 +38,8 @@
     <None Update="appsettings.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="LemmyNanny.db">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <None Update="LemmyNannyLogo.png">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
