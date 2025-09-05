@@ -16,11 +16,11 @@ namespace LemmyNanny
             var sortType = builder.Configuration["SortType"] ?? "Hot";
             var listingType = builder.Configuration["ListingType"] ?? "All";
             builder.Services.AddHostedService(provider =>
-                new LemmyNannyWorker(provider.GetRequiredService<HistoryManager>(), 
+                new LemmyNannyWorker(provider.GetRequiredService<IHistoryManager>(), 
                 provider.GetRequiredService<IHttpClientFactory>(),
                 provider.GetRequiredService<IOllamaApiClient>(),
                 builder.Configuration["Prompt"]?? throw new Exception("Prompt not set"),
-                provider.GetRequiredService<LemmyManager>()));
+                provider.GetRequiredService<ILemmyManager>()));
             var dbName = builder.Configuration["SqliteDb"] // defaults to SqliteDb value, if not present makes a new db
                 ?? $"LemmyNanny-{sortType}-{listingType}-{DateTime.Now.ToString("yyyy-MM-dd hh-mm")}.db";
             
@@ -32,7 +32,7 @@ namespace LemmyNanny
                 });
             builder.Services.AddHttpClient("PictrsClient");
 
-            builder.Services.AddSingleton(provider => new LemmyManager(provider.GetRequiredService<ILemmyHttpClient>(), Enum.Parse<SortType>(sortType), Enum.Parse<ListingType>(listingType)));
+            builder.Services.AddSingleton<ILemmyManager>(provider => new LemmyManager(provider.GetRequiredService<ILemmyHttpClient>(), Enum.Parse<SortType>(sortType), Enum.Parse<ListingType>(listingType)));
             builder.Services.AddSingleton<IOllamaApiClient>(pro =>
             {
                 var http = pro.GetRequiredService<IHttpClientFactory>();
@@ -48,7 +48,7 @@ namespace LemmyNanny
                     Password = builder.Configuration["LemmyPassword"] ?? "",
                     Username = builder.Configuration["LemmyUserName"] ?? ""
                 });
-            builder.Services.AddSingleton(o=> new HistoryManager(dbName));
+            builder.Services.AddSingleton<IHistoryManager>(o=> new HistoryManager(dbName));
 
 
             IHost host = builder.Build();

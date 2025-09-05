@@ -8,15 +8,14 @@ namespace LemmyNanny
 {
     public class LemmyNannyWorker : BackgroundService
     {
-        private readonly HistoryManager _historyManager;
+        private readonly IHistoryManager _historyManager;
         private readonly IHttpClientFactory _clientFactory;
         private readonly IOllamaApiClient _ollamaApiClient;
-        private readonly LemmyManager _lemmyManager;
+        private readonly ILemmyManager _lemmyManager;
         private readonly string _prompt;
   
-        public LemmyNannyWorker(HistoryManager historyManager, IHttpClientFactory httpClientFactory, IOllamaApiClient ollamaApiClient, string prompt, LemmyManager lemmyManager)
+        public LemmyNannyWorker(IHistoryManager historyManager, IHttpClientFactory httpClientFactory, IOllamaApiClient ollamaApiClient, string prompt, ILemmyManager lemmyManager)
         {
-
             _historyManager = historyManager;
             _clientFactory = httpClientFactory;
             _ollamaApiClient = ollamaApiClient;
@@ -87,7 +86,7 @@ namespace LemmyNanny
                             var resultOutput = new StringBuilder();
                             if (chatResults == null)
                             {
-                                AnsiConsole.WriteLine($"{DateTime.Now}: [red]***chatResults is null. Skipping***[/]");
+                                AnsiConsole.MarkupInterpolated($"{DateTime.Now}: [red]***chatResults is null. Skipping***[/]");
                                 continue;
                             }
                             await foreach (var answerToken in chatResults)
@@ -107,7 +106,7 @@ namespace LemmyNanny
                             }
                             else
                             {
-                                AnsiConsole.WriteLine($"{DateTime.Now}: [yellow]Found 'Yes', time to report {post?.Post?.Id ?? 0} with resultOutput={resultOutput}[/]");
+                                AnsiConsole.MarkupInterpolated($"{DateTime.Now}: [yellow]Found 'Yes', time to report {post?.Post?.Id ?? 0} with resultOutput={resultOutput}[/]");
                                 await _lemmyManager.TryPostReport(post.Post.Id, resultOutput.ToString(), cancellationToken);
                             }
 

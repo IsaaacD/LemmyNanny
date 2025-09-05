@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace LemmyNanny
 {
-    public class LemmyManager
+    public class LemmyManager : ILemmyManager
     {
         private string? _lastPage = string.Empty;
         private readonly SortType _sortType;
