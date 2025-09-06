@@ -1,4 +1,4 @@
-﻿namespace LemmyNanny
+﻿namespace LemmyNanny.Interfaces
 {
     public interface IHistoryManager
     {

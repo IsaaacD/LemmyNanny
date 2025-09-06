@@ -43,7 +43,7 @@ namespace LemmyNanny.Tests
                 }
             }
 
-            Assert.AreEqual(2, tables.Count);
+            Assert.AreEqual(3, tables.Count);
         }
 
         [TestMethod]
@@ -125,7 +125,7 @@ namespace LemmyNanny.Tests
                     while (reader.Read())
                     {
                         var value = reader.GetInt32(1);
-                        Assert.AreEqual(1, value);
+                        Assert.AreEqual(2, value);
                     }
                 }
             }

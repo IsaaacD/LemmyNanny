@@ -2,6 +2,7 @@
 using dotNETLemmy.API.Types.Enums;
 using dotNETLemmy.API.Types.Forms;
 using dotNETLemmy.API.Types.Responses;
+using LemmyNanny.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Spectre.Console;
 using System;
@@ -15,7 +16,8 @@ namespace LemmyNanny
 {
     public class LemmyManager : ILemmyManager
     {
-        private string? _lastPage = string.Empty;
+        private string? _lastPostPage = string.Empty;
+        private string? _lastCommentPage = string.Empty;
         private readonly SortType _sortType;
         private readonly ListingType _listingType;
 
@@ -28,22 +30,29 @@ namespace LemmyNanny
         }
         public void ResetLastPage()
         {
-            _lastPage = string.Empty;
+            _lastPostPage = string.Empty;
         }
         public async Task<GetPostsResponse> GetNextPosts(CancellationToken token)
         {
             var form = new GetPostsForm() { Sort = _sortType, Type = _listingType };
-            if (!string.IsNullOrEmpty(_lastPage))
+            if (!string.IsNullOrEmpty(_lastPostPage))
             {
-                form.PageCursor = _lastPage;
-                AnsiConsole.WriteLine($"{DateTime.Now}: set form.PageCursor={_lastPage}");
+                form.PageCursor = _lastPostPage;
+                AnsiConsole.WriteLine($"{DateTime.Now}: set form.PageCursor={_lastPostPage}");
             }
             var getPostsResponse = await _lemmyHttpClient.GetPosts(form, token);
-            _lastPage = getPostsResponse.NextPage;
+            _lastPostPage = getPostsResponse.NextPage;
             return getPostsResponse;
         }
 
-        public async Task TryPostReport(int id, string reportReason, CancellationToken token)
+        public async Task<GetCommentsResponse> GetCommentsFromPost(int id)
+        {
+            var getCommentsForm = new GetCommentsForm() { PostId = id };
+            var comments = await _lemmyHttpClient.GetComments(getCommentsForm);
+            return comments;
+        }
+
+        public async Task TryPostReport(PromptContent content, CancellationToken token)
         {
             if (!string.IsNullOrEmpty(_lemmyHttpClient.Username))
             {
@@ -55,13 +64,13 @@ namespace LemmyNanny
 
                 var loginResponse = await _lemmyHttpClient.Login(loginForm);
 
-                var report = new CreatePostReportForm() { Auth = loginResponse.Jwt, PostId = id, Reason = reportReason };
+                var report = new CreatePostReportForm() { Auth = loginResponse.Jwt, PostId = content.Id, Reason = content.Result };
                 var resp = await _lemmyHttpClient.CreatePostReport(report);
-                AnsiConsole.WriteLine($"{DateTime.Now}: Reported {id}.");
+                AnsiConsole.WriteLine($"{DateTime.Now}: Reported {content.Id}.");
             }
             else
             {
-                AnsiConsole.WriteLine($"{DateTime.Now}: No username, skipped reporting {id}.");
+                AnsiConsole.WriteLine($"{DateTime.Now}: No username, skipped reporting {content.Id}.");
             }
         }
     }
