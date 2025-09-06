@@ -56,7 +56,7 @@ namespace LemmyNanny
             
             foreach (var consoleImage in imageBytes.Select(bytes => new CanvasImage(bytes)))
             {
-                consoleImage.MaxWidth = 40;
+                consoleImage.MaxWidth = 60;
                 AnsiConsole.Write(consoleImage);
             }
             AnsiConsole.WriteLine("Welcome to LemmyNanny!");
