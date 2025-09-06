@@ -4,14 +4,14 @@ using Spectre.Console;
 
 namespace LemmyNanny
 {
-    public class HistoryManager
+    public class HistoryManager : IHistoryManager
     {
         private readonly string _dbName;
 
-        private string _connectionString => $"Data Source={_dbName}";
+        private string _connectionString => $"DataSource={_dbName}";
 
-        public HistoryManager(string dbName) 
-        { 
+        public HistoryManager(string dbName)
+        {
             _dbName = dbName;
             AnsiConsole.WriteLine($"{DateTime.Now}: Connection string = {_connectionString}");
         }
