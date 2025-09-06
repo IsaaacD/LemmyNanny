@@ -1,4 +1,5 @@
 ﻿using dotNETLemmy.API.Types;
+using LemmyNanny.Interfaces;
 using Microsoft.Data.Sqlite;
 using Spectre.Console;
 
@@ -30,8 +31,17 @@ namespace LemmyNanny
 	                                PRIMARY KEY(""post_id"")
                                 )";
                 command.ExecuteNonQuery();
-
+                command.CommandText = @"CREATE TABLE IF NOT EXISTS ""seen_comments"" (
+	                                ""comment_id""	INTEGER UNIQUE,
+                                    ""post_id"" INTEGER,
+	                                ""url""	TEXT,
+	                                ""remarks""	TEXT,
+	                                ""timestamp""	TEXT,
+	                                PRIMARY KEY(""comment_id"")
+                                )";
+                command.ExecuteNonQuery();
                 command.CommandText = @"CREATE TABLE IF NOT EXISTS ""stats"" (
+                                ""stat_type""   TEXT,
 	                            ""yes_count""	INTEGER,
 	                            ""no_count""	INTEGER,
 	                            ""domain""	TEXT,
@@ -40,8 +50,12 @@ namespace LemmyNanny
                             )";
                 command.ExecuteNonQuery();
 
-                command.CommandText = "INSERT INTO stats (start_time, yes_count, no_count) VALUES ($startime, 0, 0)";
+                command.CommandText = "INSERT INTO stats (stat_type, start_time, yes_count, no_count) VALUES ('post', $startime, 0, 0)";
                 command.Parameters.AddWithValue("$startime", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
+                command.ExecuteNonQuery();
+
+                command.CommandText = "INSERT INTO stats (stat_type, start_time, yes_count, no_count) VALUES ('comment', $startime, 0, 0)";
+                //command.Parameters.AddWithValue("$startime", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
                 command.ExecuteNonQuery();
             }
         }
@@ -163,14 +177,5 @@ namespace LemmyNanny
             }
             return alreadySeen;
         }
-    }
-
-    public class ProcessedPost
-    {
-        public int PostId { get; set; }
-        public string Url { get; set; }
-        public string? Reason { get; set; }
-
-        public bool IsYes { get; set; }
     }
 }

@@ -1,11 +1,12 @@
 ﻿using dotNETLemmy.API.Types.Responses;
 
-namespace LemmyNanny
+namespace LemmyNanny.Interfaces
 {
     public interface ILemmyManager
     {
         Task<GetPostsResponse> GetNextPosts(CancellationToken token);
         void ResetLastPage();
-        Task TryPostReport(int id, string reportReason, CancellationToken token);
+        Task TryPostReport(PromptContent content, CancellationToken token);
+        Task<GetCommentsResponse> GetCommentsFromPost(int id);
     }
 }

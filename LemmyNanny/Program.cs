@@ -1,6 +1,7 @@
 ﻿using dotNETLemmy.API;
 using dotNETLemmy.API.Types;
 using dotNETLemmy.API.Types.Enums;
+using LemmyNanny.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OllamaSharp;
@@ -13,13 +14,12 @@ namespace LemmyNanny
         static void Main(string[] args)
         {
             HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
-            var sortType = builder.Configuration["SortType"] ?? "Hot";
+            var sortType = builder.Configuration["SortType"] ?? "Active";
             var listingType = builder.Configuration["ListingType"] ?? "All";
             builder.Services.AddHostedService(provider =>
                 new LemmyNannyWorker(provider.GetRequiredService<IHistoryManager>(), 
                 provider.GetRequiredService<IHttpClientFactory>(),
-                provider.GetRequiredService<IOllamaApiClient>(),
-                builder.Configuration["Prompt"]?? throw new Exception("Prompt not set"),
+                provider.GetRequiredService<IOllamaManager>(),
                 provider.GetRequiredService<ILemmyManager>()));
             var dbName = builder.Configuration["SqliteDb"] // defaults to SqliteDb value, if not present makes a new db
                 ?? $"LemmyNanny-{sortType}-{listingType}-{DateTime.Now.ToString("yyyy-MM-dd hh-mm")}.db";
@@ -40,7 +40,7 @@ namespace LemmyNanny
                 client.SelectedModel = builder.Configuration["OllamaModel"] ?? throw new Exception("OllamaModel not set");
                 return client;
             });
-
+            builder.Services.AddSingleton<IOllamaManager>(pro => new OllamaManager(pro.GetRequiredService<IOllamaApiClient>(), builder.Configuration["Prompt"] ?? throw new Exception("Prompt not set")));
             builder.Services.AddSingleton<ILemmyHttpClient, LemmyHttpClient>(o=> 
                 new LemmyHttpClient(new HttpClient { BaseAddress = new Uri(builder.Configuration["LemmyHost"] ?? throw new Exception("LemmyHost is not set")) })
                 { 
@@ -56,7 +56,7 @@ namespace LemmyNanny
             
             foreach (var consoleImage in imageBytes.Select(bytes => new CanvasImage(bytes)))
             {
-                consoleImage.MaxWidth = 40;
+                consoleImage.MaxWidth = 60;
                 AnsiConsole.Write(consoleImage);
             }
             AnsiConsole.WriteLine("Welcome to LemmyNanny!");
