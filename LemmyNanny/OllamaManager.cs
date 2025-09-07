@@ -1,17 +1,14 @@
 ﻿using LemmyNanny.Interfaces;
 using OllamaSharp;
 using Spectre.Console;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace LemmyNanny
 {
     public class OllamaManager : IOllamaManager
     {
+        public static string CLIENT_NAME = "OllamaClient";
+
         private readonly string _prompt;
         private readonly Chat _chat;
         private string _fullPrompt => $"{_prompt}\r\nPlease output only 'Yes' if violation occurred or 'No' if the content is safe. After 'Yes' or 'No', expand on what the post is about and violations that occurred.";

@@ -3,14 +3,7 @@ using dotNETLemmy.API.Types.Enums;
 using dotNETLemmy.API.Types.Forms;
 using dotNETLemmy.API.Types.Responses;
 using LemmyNanny.Interfaces;
-using Microsoft.Extensions.Hosting;
 using Spectre.Console;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace LemmyNanny
 {
@@ -28,10 +21,16 @@ namespace LemmyNanny
             _sortType = sortType;
             _listingType = listingType;
         }
-        public void ResetLastPage()
+        public void ResetLastPostPage()
         {
             _lastPostPage = string.Empty;
         }
+
+        public void ResetLastCommentPage()
+        {
+            _lastCommentPage = string.Empty;
+        }
+
         public async Task<GetPostsResponse> GetNextPosts(CancellationToken token)
         {
             var form = new GetPostsForm() { Sort = _sortType, Type = _listingType };
@@ -48,8 +47,36 @@ namespace LemmyNanny
         public async Task<GetCommentsResponse> GetCommentsFromPost(int id)
         {
             var getCommentsForm = new GetCommentsForm() { PostId = id };
+            if (!string.IsNullOrEmpty(_lastCommentPage))
+            {
+                getCommentsForm.PageCursor = _lastCommentPage;
+                AnsiConsole.WriteLine($"{DateTime.Now}: set form.PageCursor={_lastCommentPage}");
+            }
             var comments = await _lemmyHttpClient.GetComments(getCommentsForm);
+            _lastCommentPage = comments.NextPage;
             return comments;
+        }
+
+        public async Task TryCommentReport(PromptContent content, CancellationToken token)
+        {
+            if (!string.IsNullOrEmpty(_lemmyHttpClient.Username))
+            {
+                var loginForm = new LoginForm
+                {
+                    UsernameOrEmail = _lemmyHttpClient.Username!,
+                    Password = _lemmyHttpClient.Password!
+                };
+
+                var loginResponse = await _lemmyHttpClient.Login(loginForm);
+
+                var report = new CreateCommentReportForm() { Auth = loginResponse.Jwt, CommentId = content.Id, Reason = content.Result };
+                var resp = await _lemmyHttpClient.SendAsync<CommentReportResponse>(report);
+                AnsiConsole.WriteLine($"{DateTime.Now}: Reported {content.Id}.");
+            }
+            else
+            {
+                AnsiConsole.WriteLine($"{DateTime.Now}: No username, skipped reporting {content.Id}.");
+            }
         }
 
         public async Task TryPostReport(PromptContent content, CancellationToken token)

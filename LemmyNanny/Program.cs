@@ -14,30 +14,36 @@ namespace LemmyNanny
         static void Main(string[] args)
         {
             HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+
             var sortType = builder.Configuration["SortType"] ?? "Active";
             var listingType = builder.Configuration["ListingType"] ?? "All";
+
             builder.Services.AddHostedService(provider =>
                 new LemmyNannyWorker(provider.GetRequiredService<IHistoryManager>(), 
-                provider.GetRequiredService<IHttpClientFactory>(),
+                provider.GetRequiredService<IPictrsManager>(),
                 provider.GetRequiredService<IOllamaManager>(),
                 provider.GetRequiredService<ILemmyManager>()));
+
             var dbName = builder.Configuration["SqliteDb"] // defaults to SqliteDb value, if not present makes a new db
                 ?? $"LemmyNanny-{sortType}-{listingType}-{DateTime.Now.ToString("yyyy-MM-dd hh-mm")}.db";
             
-            builder.Services.AddHttpClient("OllamaClient",
+            builder.Services.AddHttpClient(OllamaManager.CLIENT_NAME,
                 client =>
                 {
                     client.BaseAddress = new Uri(builder.Configuration["OllamaUrl"] ?? throw new Exception("OllamaUrl not set"));
                     client.Timeout = TimeSpan.FromMinutes(10);
                 });
-            builder.Services.AddHttpClient("PictrsClient");
+            builder.Services.AddHttpClient(PictrsManager.CLIENT_NAME);
+            builder.Services.AddSingleton<IPictrsManager, PictrsManager>(pro=> new PictrsManager(pro.GetRequiredService<IHttpClientFactory>()));
 
             builder.Services.AddSingleton<ILemmyManager>(provider => new LemmyManager(provider.GetRequiredService<ILemmyHttpClient>(), Enum.Parse<SortType>(sortType), Enum.Parse<ListingType>(listingType)));
             builder.Services.AddSingleton<IOllamaApiClient>(pro =>
             {
                 var http = pro.GetRequiredService<IHttpClientFactory>();
-                var client =  new OllamaApiClient(http.CreateClient("OllamaClient"));
-                client.SelectedModel = builder.Configuration["OllamaModel"] ?? throw new Exception("OllamaModel not set");
+                var client = new OllamaApiClient(http.CreateClient(OllamaManager.CLIENT_NAME))
+                {
+                    SelectedModel = builder.Configuration["OllamaModel"] ?? throw new Exception("OllamaModel not set")
+                };
                 return client;
             });
             builder.Services.AddSingleton<IOllamaManager>(pro => new OllamaManager(pro.GetRequiredService<IOllamaApiClient>(), builder.Configuration["Prompt"] ?? throw new Exception("Prompt not set")));

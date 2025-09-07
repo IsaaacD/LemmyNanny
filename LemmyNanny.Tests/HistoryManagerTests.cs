@@ -51,7 +51,7 @@ namespace LemmyNanny.Tests
         {
             var historyManager = new HistoryManager(myDatabase);
             historyManager.SetupDatabase();
-            var hasRecord = historyManager.HasRecord(111, out _);
+            var hasRecord = historyManager.HasPostRecord(111, out _);
             Assert.IsFalse(hasRecord);
         }
 
@@ -60,8 +60,8 @@ namespace LemmyNanny.Tests
         {
             var historyManager = new HistoryManager(myDatabase);
             historyManager.SetupDatabase();
-            historyManager.AddRecord(new ProcessedPost { PostId=11, IsYes=true, Reason = "resason", Url="http://asdsd.com" });
-            var hasRecord = historyManager.HasRecord(11, out _);
+            historyManager.AddPostRecord(new ProcessedPost { PostId=11, Reason = "Yes", Url="http://asdsd.com" });
+            var hasRecord = historyManager.HasPostRecord(11, out _);
             Assert.IsTrue(hasRecord);
         }
 
@@ -81,7 +81,7 @@ namespace LemmyNanny.Tests
                     Assert.IsFalse(hasRows);
                 }
             }
-            historyManager.AddRecord(new ProcessedPost { IsYes = true, Reason="test", PostId = 1, Url = "fake.com" });
+            historyManager.AddPostRecord(new ProcessedPost {  Reason="Yes", PostId = 1, Url = "fake.com" });
             using (var connection = new SqliteConnection($"DataSource={myDatabase}"))
             {
                 connection.Open();
@@ -114,55 +114,18 @@ namespace LemmyNanny.Tests
                     Assert.IsFalse(hasRows);
                 }
             }
-            historyManager.AddRecord(new ProcessedPost { IsYes = false, Reason = "test", PostId = 2, Url = "fake.com" });
+            historyManager.AddPostRecord(new ProcessedPost { Reason = "test", PostId = 2, Url = "fake.com" });
             using (var connection = new SqliteConnection($"DataSource={myDatabase}"))
             {
                 connection.Open();
                 var command = connection.CreateCommand();
-                command.CommandText = "SELECT * FROM stats";
+                command.CommandText = "SELECT no_count FROM stats";
                 using (var reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        var value = reader.GetInt32(1);
-                        Assert.AreEqual(2, value);
-                    }
-                }
-            }
-        }
-
-        [TestMethod]
-        public void UpdateEndTime_Adds_Timestamp_To_End_Time()
-        {
-            var historyManager = new HistoryManager(myDatabase);
-            historyManager.SetupDatabase();
-            using (var connection = new SqliteConnection($"DataSource={myDatabase}"))
-            {
-                connection.Open();
-                var command = connection.CreateCommand();
-                command.CommandText = "SELECT end_time FROM stats";
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var value = reader.IsDBNull(0);
-                        Assert.IsTrue(value);
-                    }
-                }
-            }
-            historyManager.UpdateEndTime();
-
-            using (var connection = new SqliteConnection($"DataSource={myDatabase}"))
-            {
-                connection.Open();
-                var command = connection.CreateCommand();
-                command.CommandText = "SELECT end_time FROM stats";
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var value = reader.GetString(0);
-                        Assert.IsNotNull(value);
+                        var value = reader.GetInt32(0);
+                        Assert.AreEqual(1, value);
                     }
                 }
             }
