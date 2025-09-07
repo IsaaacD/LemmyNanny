@@ -39,12 +39,13 @@ namespace LemmyNanny
                     {
                         var post = postView;
                         var hasRecord = _historyManager.HasPostRecord(post.Post.Id, out _);
-              
+
 
                         AnsiConsole.WriteLine("");
                         var postInfo = $"PostId:{post.Post.Id}\r\nTitle: {post.Post.Name}\r\nBody: {post.Post.Body}";
 
                         AnsiConsole.WriteLine(postInfo);
+                        AnsiConsole.WriteLine($"{post.Counts.Comments} comments on post.");
                         AnsiConsole.WriteLine(post.Post.ApId);
 
                         var promptContent = new PromptContent
@@ -71,32 +72,43 @@ namespace LemmyNanny
                                 await _lemmyManager.TryPostReport(promptContent, cancellationToken);
                             }
 
-                            AnsiConsole.WriteLine($"{DateTime.Now}: Checking comments from {post!.Post.Id}");
-                            var comments = await _lemmyManager.GetCommentsFromPost(post.Post.Id);
-                            AnsiConsole.WriteLine($"{DateTime.Now}: found {comments.Comments.Length} comments");
-                            foreach (var commentView in comments.Comments)
+                            if (post.Counts.Comments > 0)
                             {
-                                var hasSeen = _historyManager.HasCommentRecord(commentView.Comment.Id, out _);
-                                if (!hasSeen)
+                                AnsiConsole.WriteLine($"Post has {post.Counts.Comments} comments, attempting to process them now.");
+                                var currentCount = 0;
+                                var currentPage = 1;
+                                while (currentCount < post.Counts.Comments)
                                 {
-                                    AnsiConsole.WriteLine($"{DateTime.Now}: Checking comment: {commentView.Comment.Content}");
-                                    var commentContent = new PromptContent { Id = commentView.Comment.Id, Content = commentView.Comment.Content };
-                                    //commentContent.ImageBytes = await _pictrsManager.GetImageBytes(commentView.Comment.ApId)
-                                    var results = await _ollamaManager.CheckContent(commentContent);
+                                    AnsiConsole.WriteLine($"{DateTime.Now}: Checking comments from {post!.Post.Id}");
+                                    var comments = await _lemmyManager.GetCommentsFromPost(post.Post.Id, currentPage++);
+                                    AnsiConsole.WriteLine($"{DateTime.Now}: found {comments.Comments.Length} comments");
 
-                                    if (results.ReportThis)
+                                    foreach (var commentView in comments.Comments)
                                     {
-                                        await _lemmyManager.TryCommentReport(commentContent, cancellationToken);
-                                    }
+                                  
+                                        AnsiConsole.WriteLine($"Processing {++currentCount}/{post.Counts.Comments} comments.");
+                                        var hasSeen = _historyManager.HasCommentRecord(commentView.Comment.Id, out _);
+                                        if (!hasSeen)
+                                        {
+                                            AnsiConsole.WriteLine($"{DateTime.Now}: Checking comment: {commentView.Comment.Content}");
+                                            var commentContent = new PromptContent { Id = commentView.Comment.Id, Content = commentView.Comment.Content };
+                                            //commentContent.ImageBytes = await _pictrsManager.GetImageBytes(commentView.Comment.ApId)
+                                            var results = await _ollamaManager.CheckContent(commentContent);
 
-                                    _historyManager.AddCommentRecord(new ProcessedComment { CommentId = commentView.Comment.Id, PostId = commentView.Comment.PostId, Url = commentView.Comment.ApId, Reason = results.Result! });
-                                }
-                                else
-                                {
-                                    AnsiConsole.WriteLine($"{DateTime.Now}: Already seen comment {commentView.Comment.Id}, skipped.");
+                                            if (results.ReportThis)
+                                            {
+                                                await _lemmyManager.TryCommentReport(commentContent, cancellationToken);
+                                            }
+
+                                            _historyManager.AddCommentRecord(new ProcessedComment { CommentId = commentView.Comment.Id, PostId = commentView.Comment.PostId, Url = commentView.Comment.ApId, Reason = results.Result! });
+                                        }
+                                        else
+                                        {
+                                            AnsiConsole.WriteLine($"{DateTime.Now}: Already seen comment {commentView.Comment.Id}, skipped.");
+                                        }
+                                    }
                                 }
                             }
-
                             _historyManager.AddPostRecord(new ProcessedPost
                             {
                                 PostId = post.Post.Id,

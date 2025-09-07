@@ -11,7 +11,7 @@ namespace LemmyNanny
 
         private readonly string _prompt;
         private readonly Chat _chat;
-        private string _fullPrompt => $"{_prompt}\r\nPlease output only 'Yes' if violation occurred or 'No' if the content is safe. After 'Yes' or 'No', expand on what the post is about and violations that occurred.";
+        private string _fullPrompt => $"{_prompt}\r\nPlease output only 'Yes' if violation occurred or 'No' if the content is safe. After 'Yes' expand on what the post is about and violations that occurred.";
 
         public OllamaManager(IOllamaApiClient ollamaApiClient, string prompt)
         {
@@ -28,7 +28,7 @@ namespace LemmyNanny
                 sb.Append(chatResult);
                 AnsiConsole.MarkupInterpolated($"[yellow]{chatResult}[/]");
             }
-
+            AnsiConsole.WriteLine("");
             content.Result = sb.ToString();
 
             return content;
