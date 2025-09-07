@@ -10,7 +10,6 @@ namespace LemmyNanny
     public class LemmyManager : ILemmyManager
     {
         private string? _lastPostPage = string.Empty;
-        private string? _lastCommentPage = string.Empty;
         private readonly SortType _sortType;
         private readonly ListingType _listingType;
 
@@ -26,11 +25,6 @@ namespace LemmyNanny
             _lastPostPage = string.Empty;
         }
 
-        public void ResetLastCommentPage()
-        {
-            _lastCommentPage = string.Empty;
-        }
-
         public async Task<GetPostsResponse> GetNextPosts(CancellationToken token = default)
         {
             var form = new GetPostsForm() { Sort = _sortType, Type = _listingType };
@@ -44,16 +38,10 @@ namespace LemmyNanny
             return getPostsResponse;
         }
 
-        public async Task<GetCommentsResponse> GetCommentsFromPost(int id)
+        public async Task<GetCommentsResponse> GetCommentsFromPost(int id, int page = 1)
         {
-            var getCommentsForm = new GetCommentsForm() { PostId = id };
-            if (!string.IsNullOrEmpty(_lastCommentPage))
-            {
-                getCommentsForm.PageCursor = _lastCommentPage;
-                AnsiConsole.WriteLine($"{DateTime.Now}: set form.PageCursor={_lastCommentPage}");
-            }
+            var getCommentsForm = new GetCommentsForm() { PostId = id, Page = page };
             var comments = await _lemmyHttpClient.GetComments(getCommentsForm);
-            _lastCommentPage = comments.NextPage;
             return comments;
         }
 

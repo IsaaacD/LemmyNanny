@@ -6,9 +6,8 @@ namespace LemmyNanny.Interfaces
     {
         Task<GetPostsResponse> GetNextPosts(CancellationToken token);
         void ResetLastPostPage();
-        void ResetLastCommentPage();
         Task<bool> TryPostReport(PromptContent content, CancellationToken token);
-        Task<GetCommentsResponse> GetCommentsFromPost(int id);
+        Task<GetCommentsResponse> GetCommentsFromPost(int id, int page=1);
         Task<bool> TryCommentReport(PromptContent content, CancellationToken token);
     }
 }
