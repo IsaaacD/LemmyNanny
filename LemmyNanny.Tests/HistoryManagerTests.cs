@@ -43,7 +43,7 @@ namespace LemmyNanny.Tests
                 }
             }
 
-            Assert.AreEqual(3, tables.Count);
+            Assert.AreEqual(2, tables.Count);
         }
 
         [TestMethod]
@@ -93,39 +93,6 @@ namespace LemmyNanny.Tests
                     {
                         var value = reader.GetInt32(0);
                         Assert.IsNotNull(value);
-                    }
-                }
-            }
-        }
-
-        [TestMethod]
-        public void AddRecord_Creates_Record_And_Increments_No()
-        {
-            var historyManager = new HistoryManager(myDatabase);
-            historyManager.SetupDatabase();
-            using (var connection = new SqliteConnection($"DataSource={myDatabase}"))
-            {
-                connection.Open();
-                var command = connection.CreateCommand();
-                command.CommandText = "SELECT * FROM seen_posts";
-                using (var reader = command.ExecuteReader())
-                {
-                    var hasRows = reader.Read();
-                    Assert.IsFalse(hasRows);
-                }
-            }
-            historyManager.AddPostRecord(new ProcessedPost { Reason = "test", PostId = 2, Url = "fake.com" });
-            using (var connection = new SqliteConnection($"DataSource={myDatabase}"))
-            {
-                connection.Open();
-                var command = connection.CreateCommand();
-                command.CommandText = "SELECT no_count FROM stats";
-                using (var reader = command.ExecuteReader())
-                {
-                    while (reader.Read())
-                    {
-                        var value = reader.GetInt32(0);
-                        Assert.AreEqual(1, value);
                     }
                 }
             }

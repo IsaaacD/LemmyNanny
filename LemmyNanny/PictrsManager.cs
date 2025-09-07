@@ -14,7 +14,7 @@ namespace LemmyNanny
             _httpClient = httpClientFactory.CreateClient(CLIENT_NAME);
         }
 
-        public async Task<IEnumerable<byte[]>?> GetImageBytes(string url)
+        public async Task<IEnumerable<byte[]>?> GetImageBytes(string url, CancellationToken token = default)
         {
             IEnumerable<byte[]>? results = null;
             if (string.IsNullOrEmpty(url))
@@ -23,7 +23,7 @@ namespace LemmyNanny
             }
             try
             {
-                results = url.Contains("/pictrs/") ? new[] { await _httpClient.GetByteArrayAsync(url) } : null;
+                results = url.Contains("/pictrs/") ? new[] { await _httpClient.GetByteArrayAsync(url, token) } : null;
 
                 if (results != null)
                 {
