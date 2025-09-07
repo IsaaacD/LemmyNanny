@@ -2,6 +2,6 @@
 {
     public interface IPictrsManager
     {
-        Task<IEnumerable<byte[]>?> GetImageBytes(string url);
+        Task<IEnumerable<byte[]>?> GetImageBytes(string url, CancellationToken token);
     }
 }

@@ -21,7 +21,7 @@ namespace LemmyNanny
 
         public async Task<PromptContent> CheckContent(PromptContent content, CancellationToken cancellation = default)
         {
-            var chatResults = _chat.SendAsync(content.Content, content.ImageBytes, cancellation);
+            var chatResults = _chat.SendAsync(content.Content!, content.ImageBytes, cancellation);
             var sb = new StringBuilder();
             await foreach (var chatResult in chatResults)
             {

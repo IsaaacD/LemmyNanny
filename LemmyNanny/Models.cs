@@ -13,8 +13,8 @@
     {
         public int CommentId { get; set; }
         public int PostId { get; set; }
-        public string Url { get; set; }
-        public string Reason { get; set; }
+        public string? Url { get; set; }
+        public string? Reason { get; set; }
         public bool IsYes => Reason?.StartsWith("Yes") ?? false;
 
     }
@@ -22,7 +22,7 @@
     public class ProcessedPost
     {
         public int PostId { get; set; }
-        public string Url { get; set; }
+        public string? Url { get; set; }
         public string? Reason { get; set; }
 
         public bool IsYes => Reason?.StartsWith("Yes") ?? false;

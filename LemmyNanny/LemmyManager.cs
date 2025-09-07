@@ -31,7 +31,7 @@ namespace LemmyNanny
             _lastCommentPage = string.Empty;
         }
 
-        public async Task<GetPostsResponse> GetNextPosts(CancellationToken token)
+        public async Task<GetPostsResponse> GetNextPosts(CancellationToken token = default)
         {
             var form = new GetPostsForm() { Sort = _sortType, Type = _listingType };
             if (!string.IsNullOrEmpty(_lastPostPage))
@@ -57,7 +57,7 @@ namespace LemmyNanny
             return comments;
         }
 
-        public async Task TryCommentReport(PromptContent content, CancellationToken token)
+        public async Task<bool> TryCommentReport(PromptContent content, CancellationToken token = default)
         {
             if (!string.IsNullOrEmpty(_lemmyHttpClient.Username))
             {
@@ -69,17 +69,19 @@ namespace LemmyNanny
 
                 var loginResponse = await _lemmyHttpClient.Login(loginForm);
 
-                var report = new CreateCommentReportForm() { Auth = loginResponse.Jwt, CommentId = content.Id, Reason = content.Result };
+                var report = new CreateCommentReportForm() { Auth = loginResponse.Jwt, CommentId = content.Id, Reason = content.Result! };
                 var resp = await _lemmyHttpClient.SendAsync<CommentReportResponse>(report);
                 AnsiConsole.WriteLine($"{DateTime.Now}: Reported {content.Id}.");
+                return true;
             }
             else
             {
                 AnsiConsole.WriteLine($"{DateTime.Now}: No username, skipped reporting {content.Id}.");
+                return false;
             }
         }
 
-        public async Task TryPostReport(PromptContent content, CancellationToken token)
+        public async Task<bool> TryPostReport(PromptContent content, CancellationToken token = default)
         {
             if (!string.IsNullOrEmpty(_lemmyHttpClient.Username))
             {
@@ -91,13 +93,15 @@ namespace LemmyNanny
 
                 var loginResponse = await _lemmyHttpClient.Login(loginForm);
 
-                var report = new CreatePostReportForm() { Auth = loginResponse.Jwt, PostId = content.Id, Reason = content.Result };
+                var report = new CreatePostReportForm() { Auth = loginResponse.Jwt, PostId = content.Id, Reason = content.Result! };
                 var resp = await _lemmyHttpClient.CreatePostReport(report);
                 AnsiConsole.WriteLine($"{DateTime.Now}: Reported {content.Id}.");
+                return true;
             }
             else
             {
                 AnsiConsole.WriteLine($"{DateTime.Now}: No username, skipped reporting {content.Id}.");
+                return false;
             }
         }
     }

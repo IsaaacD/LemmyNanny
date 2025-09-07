@@ -1,6 +1,5 @@
 ﻿using LemmyNanny.Interfaces;
 using Microsoft.Extensions.Hosting;
-using SixLabors.ImageSharp;
 using Spectre.Console;
 
 namespace LemmyNanny
@@ -56,7 +55,7 @@ namespace LemmyNanny
 
                         if (!hasRecord)
                         {
-                            promptContent.ImageBytes = await _pictrsManager.GetImageBytes(post.Post.Url);
+                            promptContent.ImageBytes = await _pictrsManager.GetImageBytes(post.Post.Url ?? "", cancellationToken);
                             
                             var content = await _ollamaManager.CheckContent( promptContent );
 
@@ -68,11 +67,11 @@ namespace LemmyNanny
                             }
                             else
                             {
-                                AnsiConsole.MarkupInterpolated($"{DateTime.Now}: [yellow]Found 'Yes', time to report {post?.Post?.Id ?? 0} with resultOutput={content.Result}[/]");
+                                AnsiConsole.MarkupInterpolated($"{DateTime.Now}: [yellow]Found 'Yes', time to report {post?.Post?.Id!} with resultOutput={content.Result}[/]");
                                 await _lemmyManager.TryPostReport(promptContent, cancellationToken);
                             }
 
-                            AnsiConsole.WriteLine($"{DateTime.Now}: Checking comments from {post.Post.Id}");
+                            AnsiConsole.WriteLine($"{DateTime.Now}: Checking comments from {post!.Post.Id}");
                             var comments = await _lemmyManager.GetCommentsFromPost(post.Post.Id);
                             AnsiConsole.WriteLine($"{DateTime.Now}: found {comments.Comments.Length} comments");
                             foreach (var commentView in comments.Comments)
@@ -90,7 +89,7 @@ namespace LemmyNanny
                                         await _lemmyManager.TryCommentReport(commentContent, cancellationToken);
                                     }
 
-                                    _historyManager.AddCommentRecord(new ProcessedComment { CommentId = commentView.Comment.Id, PostId = commentView.Comment.PostId, Url = commentView.Comment.ApId, Reason = results.Result });
+                                    _historyManager.AddCommentRecord(new ProcessedComment { CommentId = commentView.Comment.Id, PostId = commentView.Comment.PostId, Url = commentView.Comment.ApId, Reason = results.Result! });
                                 }
                                 else
                                 {
