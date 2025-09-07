@@ -8,21 +8,20 @@ namespace LemmyNanny
     public class LemmyNannyWorker : BackgroundService
     {
         private readonly IHistoryManager _historyManager;
-        private readonly IHttpClientFactory _clientFactory;
+        private readonly IPictrsManager _pictrsManager;
         private readonly IOllamaManager _ollamaManager;
         private readonly ILemmyManager _lemmyManager;
   
-        public LemmyNannyWorker(IHistoryManager historyManager, IHttpClientFactory httpClientFactory, IOllamaManager ollamaManager, ILemmyManager lemmyManager)
+        public LemmyNannyWorker(IHistoryManager historyManager, IPictrsManager pictrsManager, IOllamaManager ollamaManager, ILemmyManager lemmyManager)
         {
             _historyManager = historyManager;
-            _clientFactory = httpClientFactory;
+            _pictrsManager = pictrsManager;
             _ollamaManager = ollamaManager;
             _lemmyManager = lemmyManager;
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
-            var picsHttpClient = _clientFactory.CreateClient("PictrsClient");
 
             _historyManager.SetupDatabase();
 
@@ -33,15 +32,15 @@ namespace LemmyNanny
                 AnsiConsole.WriteLine($"{DateTime.Now}: Checking {postResponse.Posts?.Length ?? 0} posts");
                 if(postResponse.Posts == null)
                 {
-                    _lemmyManager.ResetLastPage();
+                    _lemmyManager.ResetLastPostPage();
                 }
                 else
                 {
                     foreach (var postView in postResponse.Posts)
                     {
                         var post = postView;
-                        var hasRecord = _historyManager.HasRecord(post.Post.Id, out _);
-                        var newSeen = new ProcessedPost { PostId = post.Post.Id };
+                        var hasRecord = _historyManager.HasPostRecord(post.Post.Id, out _);
+              
 
                         AnsiConsole.WriteLine("");
                         var postInfo = $"PostId:{post.Post.Id}\r\nTitle: {post.Post.Name}\r\nBody: {post.Post.Body}";
@@ -57,32 +56,9 @@ namespace LemmyNanny
 
                         if (!hasRecord)
                         {
-                            try
-                            {
-                                promptContent.ImageBytes = post.Post?.Url?.Contains("/pictrs/") ?? false ? new[] { await picsHttpClient.GetByteArrayAsync(post.Post.Url) } : null;
-
-                                foreach (var consoleImage in promptContent?.ImageBytes?.Select(bytes => new CanvasImage(bytes)))
-                                {
-                                    consoleImage.MaxWidth = 40;
-                                    AnsiConsole.Write(consoleImage);
-                                }
-
-                            }
-                            catch (UnknownImageFormatException)
-                            {
-                                AnsiConsole.WriteLine("");
-                                AnsiConsole.MarkupInterpolated($"[red]*** post.Post.Url={post?.Post?.Url}. Cannot process UnknownImageFormatException. Likely type failure. ***[/]");
-                                AnsiConsole.WriteLine("");
-                            }
-                            catch (Exception e)
-                            {
-                                AnsiConsole.WriteLine($"{DateTime.Now}: Failed {e.GetType()} - {e.Message}");
-                            }
-
+                            promptContent.ImageBytes = await _pictrsManager.GetImageBytes(post.Post.Url);
+                            
                             var content = await _ollamaManager.CheckContent( promptContent );
-                            newSeen.Reason = content.Result;
-                            newSeen.Url = post.Post.ApId;
-                            newSeen.IsYes = promptContent.ReportThis;
 
                             AnsiConsole.WriteLine("");
 
@@ -98,23 +74,40 @@ namespace LemmyNanny
 
                             AnsiConsole.WriteLine($"{DateTime.Now}: Checking comments from {post.Post.Id}");
                             var comments = await _lemmyManager.GetCommentsFromPost(post.Post.Id);
-
+                            AnsiConsole.WriteLine($"{DateTime.Now}: found {comments.Comments.Length} comments");
                             foreach (var commentView in comments.Comments)
                             {
-                                AnsiConsole.WriteLine($"{DateTime.Now} Checking comment: {commentView.Comment.Content}");
-                                var results = await _ollamaManager.CheckContent(new PromptContent { Id= commentView.Comment.Id, Content = commentView.Comment.Content });
-
-                                if (results.ReportThis)
+                                var hasSeen = _historyManager.HasCommentRecord(commentView.Comment.Id, out _);
+                                if (!hasSeen)
                                 {
-                                    AnsiConsole.WriteLine("Reported");
+                                    AnsiConsole.WriteLine($"{DateTime.Now}: Checking comment: {commentView.Comment.Content}");
+                                    var commentContent = new PromptContent { Id = commentView.Comment.Id, Content = commentView.Comment.Content };
+                                    //commentContent.ImageBytes = await _pictrsManager.GetImageBytes(commentView.Comment.ApId)
+                                    var results = await _ollamaManager.CheckContent(commentContent);
+
+                                    if (results.ReportThis)
+                                    {
+                                        await _lemmyManager.TryCommentReport(commentContent, cancellationToken);
+                                    }
+
+                                    _historyManager.AddCommentRecord(new ProcessedComment { CommentId = commentView.Comment.Id, PostId = commentView.Comment.PostId, Url = commentView.Comment.ApId, Reason = results.Result });
+                                }
+                                else
+                                {
+                                    AnsiConsole.WriteLine($"{DateTime.Now}: Already seen comment {commentView.Comment.Id}, skipped.");
                                 }
                             }
 
-                            _historyManager.AddRecord(newSeen);
+                            _historyManager.AddPostRecord(new ProcessedPost
+                            {
+                                PostId = post.Post.Id,
+                                Reason = content.Result,
+                                Url = post.Post.ApId
+                            });
                         }
                         else
                         {
-                            AnsiConsole.WriteLine("Seen post, skipping: Waiting 1 second");
+                            AnsiConsole.WriteLine($"{DateTime.Now}: Seen post {post.Post.Id}, skipping: Waiting 1 second");
                             await Task.Delay(1000);
                         }
                     }
@@ -123,8 +116,7 @@ namespace LemmyNanny
 
             if (cancellationToken.IsCancellationRequested)
             {
-                _historyManager.UpdateEndTime();
-                Console.WriteLine("Cancelled Press enter to end.");
+                Console.WriteLine($"{DateTime.Now}: Cancelled Press enter to end.");
                 Console.ReadLine();
             }
         }
