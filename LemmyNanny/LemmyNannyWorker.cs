@@ -68,7 +68,7 @@ namespace LemmyNanny
                                     promptContent.ImageBytes.Add(contentBytes);
                             }
 
-                            var content = await _ollamaManager.CheckContent( promptContent );
+                            var content = await _ollamaManager.CheckContent( promptContent, cancellationToken );
 
                             AnsiConsole.WriteLine("");
 
@@ -78,7 +78,9 @@ namespace LemmyNanny
                             }
                             else
                             {
+                                AnsiConsole.WriteLine("");
                                 AnsiConsole.MarkupInterpolated($"{DateTime.Now}: [yellow]Found 'Yes', time to report {post?.Post?.Id!} with resultOutput={content.Result}[/]");
+                                AnsiConsole.WriteLine("");
                                 await _lemmyManager.TryPostReport(promptContent, cancellationToken);
                             }
 
@@ -90,7 +92,7 @@ namespace LemmyNanny
                                 while (currentCount < post.Counts.Comments)
                                 {
                                     AnsiConsole.WriteLine($"{DateTime.Now}: Checking comments from {post!.Post.Id}");
-                                    var comments = await _lemmyManager.GetCommentsFromPost(post.Post.Id, currentPage++);
+                                    var comments = await _lemmyManager.GetCommentsFromPost(post.Post.Id, currentPage++, cancellationToken);
                                     AnsiConsole.WriteLine($"{DateTime.Now}: found {comments.Comments.Length} comments");
 
                                     foreach (var commentView in comments.Comments)
@@ -109,14 +111,14 @@ namespace LemmyNanny
                                                     commentContent.ImageBytes.Add(contentBytes);
                                             }
 
-                                            var results = await _ollamaManager.CheckContent(commentContent);
+                                            var results = await _ollamaManager.CheckContent(commentContent, cancellationToken);
 
                                             if (results.ReportThis)
                                             {
                                                 await _lemmyManager.TryCommentReport(commentContent, cancellationToken);
                                             }
 
-                                            _historyManager.AddCommentRecord(new ProcessedComment { CommentId = commentView.Comment.Id, PostId = commentView.Comment.PostId, Url = commentView.Comment.ApId, Reason = results.Result! });
+                                            _historyManager.AddCommentRecord(new ProcessedComment { CommentId = commentView.Comment.Id, PostId = commentView.Comment.PostId, Url = commentView.Comment.ApId, Reason = results.Result ?? "" });
                                         }
                                         else
                                         {

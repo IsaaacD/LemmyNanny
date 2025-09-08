@@ -27,7 +27,9 @@ namespace LemmyNanny
 
                 if (results != null)
                 {
+                    AnsiConsole.WriteLine("");
                     AnsiConsole.Write(new CanvasImage(results) { MaxWidth = 40 });
+                    AnsiConsole.WriteLine("");
                 }
             }
             catch (UnknownImageFormatException)
@@ -38,7 +40,9 @@ namespace LemmyNanny
             }
             catch (Exception e)
             {
+                AnsiConsole.WriteLine("");
                 AnsiConsole.MarkupInterpolated($"{DateTime.Now}:[red]*** Failed {e.GetType()} - {e.Message}***[/]");
+                AnsiConsole.WriteLine("");
             }
 
             return results;

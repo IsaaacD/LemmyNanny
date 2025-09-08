@@ -39,6 +39,7 @@ namespace LemmyNanny
             {
                 AnsiConsole.WriteLine($"{DateTime.Now}: Issue with prompt {content.Id}");
                 content.Failed = true;
+                content.Result = "Failed to check";
             }
 
             return content;
