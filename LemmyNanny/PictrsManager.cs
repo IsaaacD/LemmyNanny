@@ -14,24 +14,20 @@ namespace LemmyNanny
             _httpClient = httpClientFactory.CreateClient(CLIENT_NAME);
         }
 
-        public async Task<IEnumerable<byte[]>?> GetImageBytes(string url, CancellationToken token = default)
+        public async Task<byte[]?> GetImageBytes(string url, CancellationToken token = default)
         {
-            IEnumerable<byte[]>? results = null;
+            byte[]? results = null;
             if (string.IsNullOrEmpty(url))
             {
                 return results;
             }
             try
             {
-                results = url.Contains("/pictrs/") ? new[] { await _httpClient.GetByteArrayAsync(url, token) } : null;
+                results = await _httpClient.GetByteArrayAsync(url, token);
 
                 if (results != null)
                 {
-                    foreach (var consoleImage in results.Select(bytes => new CanvasImage(bytes)))
-                    {
-                        consoleImage.MaxWidth = 40;
-                        AnsiConsole.Write(consoleImage);
-                    }
+                    AnsiConsole.Write(new CanvasImage(results) { MaxWidth = 40 });
                 }
             }
             catch (UnknownImageFormatException)
