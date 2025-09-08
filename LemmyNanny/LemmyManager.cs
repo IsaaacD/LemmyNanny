@@ -25,24 +25,53 @@ namespace LemmyNanny
             _lastPostPage = string.Empty;
         }
 
-        public async Task<GetPostsResponse> GetNextPosts(CancellationToken token = default)
+        public async Task<GetPostsResponse> GetNextPosts(CancellationToken token = default, int retry = 0)
         {
-            var form = new GetPostsForm() { Sort = _sortType, Type = _listingType };
-            if (!string.IsNullOrEmpty(_lastPostPage))
+            try
             {
-                form.PageCursor = _lastPostPage;
-                AnsiConsole.WriteLine($"{DateTime.Now}: set form.PageCursor={_lastPostPage}");
+                var form = new GetPostsForm() { Sort = _sortType, Type = _listingType };
+                if (!string.IsNullOrEmpty(_lastPostPage))
+                {
+                    form.PageCursor = _lastPostPage;
+                    AnsiConsole.WriteLine($"{DateTime.Now}: set form.PageCursor={_lastPostPage}");
+                }
+                var getPostsResponse = await _lemmyHttpClient.GetPosts(form, token);
+                _lastPostPage = getPostsResponse.NextPage;
+                return getPostsResponse;
             }
-            var getPostsResponse = await _lemmyHttpClient.GetPosts(form, token);
-            _lastPostPage = getPostsResponse.NextPage;
-            return getPostsResponse;
+            catch (Exception)
+            {
+                if (retry < 3)
+                {
+                    return await GetNextPosts(token, ++retry);
+                }
+                else
+                {
+                    return await Task.FromResult(new GetPostsResponse());
+                }
+            }
+
         }
 
-        public async Task<GetCommentsResponse> GetCommentsFromPost(int id, int page = 1)
+        public async Task<GetCommentsResponse> GetCommentsFromPost(int id, int page = 1, CancellationToken token = default, int retry = 0)
         {
-            var getCommentsForm = new GetCommentsForm() { PostId = id, Page = page };
-            var comments = await _lemmyHttpClient.GetComments(getCommentsForm);
-            return comments;
+            try
+            {
+                var getCommentsForm = new GetCommentsForm() { PostId = id, Page = page };
+                var comments = await _lemmyHttpClient.GetComments(getCommentsForm, token);
+                return comments;
+            }
+            catch (Exception)
+            {
+                if(retry < 3)
+                {
+                    return await GetCommentsFromPost(id, page, token, ++retry);
+                }
+                else
+                {
+                    return await Task.FromResult(new GetCommentsResponse());
+                }
+            }
         }
 
         public async Task<bool> TryCommentReport(PromptContent content, CancellationToken token = default)
