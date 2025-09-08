@@ -1,12 +1,20 @@
-﻿namespace LemmyNanny
+﻿using Microsoft.Extensions.FileSystemGlobbing.Internal;
+using System.Text.RegularExpressions;
+
+namespace LemmyNanny
 {
     public class PromptContent
     {
         public int Id { get; set; }
         public bool ReportThis => Result?.StartsWith("Yes") ?? false;
         public string? Content { get; set; }
-        public IEnumerable<byte[]>? ImageBytes { get; set; }
+        public List<byte[]> ImageBytes { get; set; } = new List<byte[]>();
         public string? Result { get; set; }
+
+        public MatchCollection ImageMatches => Regex.Matches(Content!, @"!\[[^\]]*\]\(([^\s]+[.](png|svg|jpeg))\)",
+                                               RegexOptions.None,
+                                               TimeSpan.FromSeconds(1));
+        public bool Failed { get; set; }
     }
 
     public class ProcessedComment

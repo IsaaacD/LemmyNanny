@@ -1,6 +1,7 @@
 ﻿using LemmyNanny.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Spectre.Console;
+using System.Text.RegularExpressions;
 
 namespace LemmyNanny
 {
@@ -42,7 +43,7 @@ namespace LemmyNanny
 
 
                         AnsiConsole.WriteLine("");
-                        var postInfo = $"PostId:{post.Post.Id}\r\nTitle: {post.Post.Name}\r\nBody: {post.Post.Body}";
+                        var postInfo = $"This is the post:```\r\nTitle: {post.Post.Name}\r\nBody: {post.Post.Body}```";
 
                         AnsiConsole.WriteLine(postInfo);
                         AnsiConsole.WriteLine($"{post.Counts.Comments} comments on post.");
@@ -56,8 +57,17 @@ namespace LemmyNanny
 
                         if (!hasRecord)
                         {
-                            promptContent.ImageBytes = await _pictrsManager.GetImageBytes(post.Post.Url ?? "", cancellationToken);
-                            
+                            var urlBytes = await _pictrsManager.GetImageBytes(post.Post.Url ?? "", cancellationToken);
+                            if(urlBytes != null)
+                                promptContent.ImageBytes.Add(urlBytes);
+
+                            foreach (Match imageUrl in promptContent.ImageMatches)
+                            {
+                                var contentBytes = await _pictrsManager.GetImageBytes(imageUrl.Groups[1].Value, cancellationToken);
+                                if (contentBytes != null)
+                                    promptContent.ImageBytes.Add(contentBytes);
+                            }
+
                             var content = await _ollamaManager.CheckContent( promptContent );
 
                             AnsiConsole.WriteLine("");
@@ -91,8 +101,14 @@ namespace LemmyNanny
                                         if (!hasSeen)
                                         {
                                             AnsiConsole.WriteLine($"{DateTime.Now}: Checking comment: {commentView.Comment.Content}");
-                                            var commentContent = new PromptContent { Id = commentView.Comment.Id, Content = commentView.Comment.Content };
-                                            //commentContent.ImageBytes = await _pictrsManager.GetImageBytes(commentView.Comment.ApId)
+                                            var commentContent = new PromptContent { Id = commentView.Comment.Id, Content = $"This is the comment: ```{commentView.Comment.Content}```" };
+                                            foreach (Match imageUrl in commentContent.ImageMatches)
+                                            {
+                                                var contentBytes = await _pictrsManager.GetImageBytes(imageUrl.Groups[1].Value, cancellationToken);
+                                                if (contentBytes != null)
+                                                    commentContent.ImageBytes.Add(contentBytes);
+                                            }
+
                                             var results = await _ollamaManager.CheckContent(commentContent);
 
                                             if (results.ReportThis)

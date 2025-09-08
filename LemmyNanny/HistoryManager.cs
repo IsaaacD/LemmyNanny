@@ -59,7 +59,7 @@ namespace LemmyNanny
                 command.Parameters.AddWithValue("$url", post.Url);
                 command.Parameters.AddWithValue("$remarks", post.Reason);
                 command.Parameters.AddWithValue("$timestamp", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
-                command.Parameters.AddWithValue("$reported", post.IsYes);
+                command.Parameters.AddWithValue("$reported", post.IsYes ? 1 : 0);
                 command.ExecuteNonQuery();
             }
             AnsiConsole.WriteLine($"{DateTime.Now}: Wrote post {post.PostId} to db.");
@@ -144,7 +144,7 @@ namespace LemmyNanny
                 command.Parameters.AddWithValue("$url", comment.Url);
                 command.Parameters.AddWithValue("$remarks", comment.Reason);
                 command.Parameters.AddWithValue("$timestamp", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
-                command.Parameters.AddWithValue("$reported", comment.IsYes);
+                command.Parameters.AddWithValue("$reported", comment.IsYes ? 1 : 0);
                 command.ExecuteNonQuery();
             }
             AnsiConsole.WriteLine($"{DateTime.Now}: Wrote comment {comment.CommentId} to db.");
