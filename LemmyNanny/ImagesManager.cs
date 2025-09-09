@@ -1,15 +1,13 @@
 ﻿using LemmyNanny.Interfaces;
 using SixLabors.ImageSharp;
 using Spectre.Console;
-using System;
 using System.Text.RegularExpressions;
-using System.Threading;
 
 namespace LemmyNanny
 {
     public class ImagesManager : IImagesManager
     {
-        public static string CLIENT_NAME = "PictrsClient";
+        public static string CLIENT_NAME = "ImagesClient";
         private readonly HttpClient _httpClient;
 
         public ImagesManager(IHttpClientFactory httpClientFactory)
@@ -21,30 +19,12 @@ namespace LemmyNanny
         {
             foreach (Match imageUrl in content.ImageMatches)
             {
-                try
-                {
-                    var results = await _httpClient.GetByteArrayAsync(imageUrl.Value, token);
-                    content.ImageBytes.Add(results);
-                    if (results != null)
-                    {
-                        AnsiConsole.WriteLine("");
-                        AnsiConsole.Write(new CanvasImage(results) { MaxWidth = 40 });
-                        AnsiConsole.WriteLine("");
-                    }
-                }
-                catch (UnknownImageFormatException)
-                {
-                    AnsiConsole.WriteLine("");
-                    AnsiConsole.MarkupInterpolated($"[red]*** post.Post.Url={imageUrl}. Cannot process UnknownImageFormatException. Likely type failure. ***[/]");
-                    AnsiConsole.WriteLine("");
-                }
-                catch (Exception e)
-                {
-                    AnsiConsole.WriteLine("");
-                    AnsiConsole.MarkupInterpolated($"{DateTime.Now}:[red]*** Failed {e.GetType()} - {e.Message}***[/]");
-                    AnsiConsole.WriteLine("");
-                }
+                var results = await GetImageBytes(imageUrl.Value, token);
 
+                if (results != null)
+                {
+                    content.ImageBytes.Add(results);
+                }
             }
 
             return content;
