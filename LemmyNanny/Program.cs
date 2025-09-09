@@ -40,10 +40,7 @@ namespace LemmyNanny
             builder.Services.AddSingleton<IOllamaApiClient>(pro =>
             {
                 var http = pro.GetRequiredService<IHttpClientFactory>();
-                var client = new OllamaApiClient(http.CreateClient(OllamaManager.CLIENT_NAME))
-                {
-                    SelectedModel = builder.Configuration["OllamaModel"] ?? throw new Exception("OllamaModel not set")
-                };
+                var client = new OllamaApiClient(http.CreateClient(OllamaManager.CLIENT_NAME), builder.Configuration["OllamaModel"] ?? throw new Exception("OllamaModel not set"));
                 return client;
             });
             builder.Services.AddSingleton<IOllamaManager>(pro => new OllamaManager(pro.GetRequiredService<IOllamaApiClient>(), builder.Configuration["Prompt"] ?? throw new Exception("Prompt not set")));

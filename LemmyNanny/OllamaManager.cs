@@ -11,7 +11,7 @@ namespace LemmyNanny
 
         private readonly string _prompt;
         private readonly IOllamaApiClient _ollamaApiClient;
-        private string _fullPrompt => $"{_prompt}\r\nPlease output only 'Yes' if violation occurred or 'No' if the content is safe. After 'Yes', expand on what the post is about and violations that occurred.";
+        private string _fullPrompt => $"{_prompt}\r\nPlease output only 'Yes' if violation occurred or 'No', then guide based on this given prompt."; //if the content is safe. After 'Yes', expand on what the post is about and violations that occurred.";
 
         public OllamaManager(IOllamaApiClient ollamaApiClient, string prompt)
         {

@@ -16,5 +16,10 @@ namespace LemmyNanny
         public  DateTime StartTime { get; set; }
         public  TimeSpan ElapsedTime => DateTime.Now - StartTime;
         public  List<Processed> History { get; set; } = [];
+        /*
+    add webhook to go to domain, takes unique instance ids and collates data
+    heartbeat with stats for running
+    live updating dashboard to share on twitch
+ */
     }
 }
