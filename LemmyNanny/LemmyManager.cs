@@ -43,6 +43,8 @@ namespace LemmyNanny
             {
                 if (retry < 3)
                 {
+                    AnsiConsole.WriteLine($"{DateTime.Now}: Failed {nameof(GetNextPosts)}, retrying");
+                    await Task.Delay(100);
                     return await GetNextPosts(token, ++retry);
                 }
                 else
@@ -65,6 +67,8 @@ namespace LemmyNanny
             {
                 if(retry < 3)
                 {
+                    AnsiConsole.WriteLine($"{DateTime.Now}: Failed {nameof(GetCommentsFromPost)}, retrying");
+                    await Task.Delay(100);
                     return await GetCommentsFromPost(id, page, token, ++retry);
                 }
                 else
