@@ -20,7 +20,7 @@ namespace LemmyNanny
 
             builder.Services.AddHostedService(provider =>
                 new LemmyNannyWorker(provider.GetRequiredService<IHistoryManager>(), 
-                provider.GetRequiredService<IPictrsManager>(),
+                provider.GetRequiredService<IImagesManager>(),
                 provider.GetRequiredService<IOllamaManager>(),
                 provider.GetRequiredService<ILemmyManager>()));
 
@@ -33,8 +33,8 @@ namespace LemmyNanny
                     client.BaseAddress = new Uri(builder.Configuration["OllamaUrl"] ?? throw new Exception("OllamaUrl not set"));
                     client.Timeout = TimeSpan.FromMinutes(10);
                 });
-            builder.Services.AddHttpClient(PictrsManager.CLIENT_NAME);
-            builder.Services.AddSingleton<IPictrsManager, PictrsManager>(pro=> new PictrsManager(pro.GetRequiredService<IHttpClientFactory>()));
+            builder.Services.AddHttpClient(ImagesManager.CLIENT_NAME);
+            builder.Services.AddSingleton<IImagesManager, ImagesManager>(pro=> new ImagesManager(pro.GetRequiredService<IHttpClientFactory>()));
 
             builder.Services.AddSingleton<ILemmyManager>(provider => new LemmyManager(provider.GetRequiredService<ILemmyHttpClient>(), Enum.Parse<SortType>(sortType), Enum.Parse<ListingType>(listingType)));
             builder.Services.AddSingleton<IOllamaApiClient>(pro =>

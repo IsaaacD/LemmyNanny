@@ -8,14 +8,14 @@ namespace LemmyNanny
     public class LemmyNannyWorker : BackgroundService
     {
         private readonly IHistoryManager _historyManager;
-        private readonly IPictrsManager _pictrsManager;
+        private readonly IImagesManager _imagesManager;
         private readonly IOllamaManager _ollamaManager;
         private readonly ILemmyManager _lemmyManager;
   
-        public LemmyNannyWorker(IHistoryManager historyManager, IPictrsManager pictrsManager, IOllamaManager ollamaManager, ILemmyManager lemmyManager)
+        public LemmyNannyWorker(IHistoryManager historyManager, IImagesManager imagesManager, IOllamaManager ollamaManager, ILemmyManager lemmyManager)
         {
             _historyManager = historyManager;
-            _pictrsManager = pictrsManager;
+            _imagesManager = imagesManager;
             _ollamaManager = ollamaManager;
             _lemmyManager = lemmyManager;
         }
@@ -57,16 +57,11 @@ namespace LemmyNanny
 
                         if (!hasRecord)
                         {
-                            var urlBytes = await _pictrsManager.GetImageBytes(post.Post.Url ?? "", cancellationToken);
+                            var urlBytes = await _imagesManager.GetImageBytes(post.Post.Url ?? "", cancellationToken);
                             if(urlBytes != null)
                                 promptContent.ImageBytes.Add(urlBytes);
 
-                            foreach (Match imageUrl in promptContent.ImageMatches)
-                            {
-                                var contentBytes = await _pictrsManager.GetImageBytes(imageUrl.Groups[1].Value, cancellationToken);
-                                if (contentBytes != null)
-                                    promptContent.ImageBytes.Add(contentBytes);
-                            }
+                            promptContent = await _imagesManager.GetImageBytes(promptContent, cancellationToken);
 
                             var content = await _ollamaManager.CheckContent( promptContent, cancellationToken );
 
@@ -84,7 +79,7 @@ namespace LemmyNanny
                                 await _lemmyManager.TryPostReport(promptContent, cancellationToken);
                             }
 
-                            if (post.Counts.Comments > 0)
+                            if (post!.Counts.Comments > 0)
                             {
                                 AnsiConsole.WriteLine($"Post has {post.Counts.Comments} comments, attempting to process them now.");
                                 var currentCount = 0;
@@ -104,12 +99,7 @@ namespace LemmyNanny
                                         {
                                             AnsiConsole.WriteLine($"{DateTime.Now}: Checking comment: {commentView.Comment.Content}");
                                             var commentContent = new PromptContent { Id = commentView.Comment.Id, Content = $"This is the comment: ```{commentView.Comment.Content}```" };
-                                            foreach (Match imageUrl in commentContent.ImageMatches)
-                                            {
-                                                var contentBytes = await _pictrsManager.GetImageBytes(imageUrl.Groups[1].Value, cancellationToken);
-                                                if (contentBytes != null)
-                                                    commentContent.ImageBytes.Add(contentBytes);
-                                            }
+                                            commentContent = await _imagesManager.GetImageBytes(commentContent, cancellationToken);
 
                                             var results = await _ollamaManager.CheckContent(commentContent, cancellationToken);
 
@@ -118,7 +108,7 @@ namespace LemmyNanny
                                                 await _lemmyManager.TryCommentReport(commentContent, cancellationToken);
                                             }
 
-                                            _historyManager.AddCommentRecord(new ProcessedComment { CommentId = commentView.Comment.Id, PostId = commentView.Comment.PostId, Url = commentView.Comment.ApId, Reason = results.Result ?? "" });
+                                            _historyManager.AddCommentRecord(new ProcessedComment { Id = commentView.Comment.Id, PostId = commentView.Comment.PostId, Url = commentView.Comment.ApId, Reason = results.Result ?? "" });
                                         }
                                         else
                                         {
@@ -129,7 +119,7 @@ namespace LemmyNanny
                             }
                             _historyManager.AddPostRecord(new ProcessedPost
                             {
-                                PostId = post.Post.Id,
+                                Id = post.Post.Id,
                                 Reason = content.Result,
                                 Url = post.Post.ApId
                             });
