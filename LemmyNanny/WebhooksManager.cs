@@ -9,7 +9,7 @@ namespace LemmyNanny
     {
         public static string CLIENT_NAME = "WebhooksClient";
         private readonly HttpClient _httpClient;
-        private readonly List<string> _urls;
+        private readonly List<WebhookConfig> _urls;
 
         public int Posts { get; private set; }
         public int Comments { get; private set; }
@@ -20,7 +20,7 @@ namespace LemmyNanny
         public TimeSpan ElapsedTime => DateTime.Now - StartTime;
         public List<Processed> History { get; set; } = [];
 
-        public WebhooksManager(IHttpClientFactory httpClientFactory, List<string> urls, DateTime datetime)
+        public WebhooksManager(IHttpClientFactory httpClientFactory, List<WebhookConfig> urls, DateTime datetime)
         {
             _httpClient = httpClientFactory.CreateClient(CLIENT_NAME);
             _urls = urls;
@@ -58,10 +58,12 @@ namespace LemmyNanny
             {
                 if (_urls.Count != 0)
                 {
-                    foreach (var url in _urls)
+                    foreach (var config in _urls)
                     {
-                        await _httpClient.PostAsync(url, JsonContent.Create(processed));
-                        AnsiConsole.WriteLine($"Forwarded JsonContent to {url} succesfully.");
+                        var jsonContent = JsonContent.Create(processed);
+                        jsonContent.Headers.Add("ClientSecret", config.Secret);
+                        await _httpClient.PostAsync(config.Url,  jsonContent);
+                        AnsiConsole.WriteLine($"Forwarded JsonContent to {config.Url} succesfully.");
                     }
                 }
             }

@@ -48,5 +48,10 @@ namespace LemmyNanny
         public string? ExtraInfo { get; set; }
     }
 
+    public class WebhookConfig
+    {
+        public string? Url { get; set; }
+        public string? Secret { get; set; }
+    }
 
 }
