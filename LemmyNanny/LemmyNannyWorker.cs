@@ -88,7 +88,9 @@ namespace LemmyNanny
                                 Url = post.Post.ApId,
                                 Title = post.Post.Name,
                                 Content = post.Post.Body,
-                                ProcessedType = ProcessedType.Post
+                                ProcessedType = ProcessedType.Post,
+                                Username = post.Creator.DisplayName ?? post.Creator.Name,
+                                AvatarUrl = post.Creator.Avatar
                             };
 
                             _historyManager.AddPostRecord(processedPost);
@@ -128,7 +130,9 @@ namespace LemmyNanny
                                                 PostId = commentView.Comment.PostId, 
                                                 Url = commentView.Comment.ApId, 
                                                 Reason = results.Result ?? "" ,
-                                                ProcessedType = ProcessedType.Comment
+                                                ProcessedType = ProcessedType.Comment,
+                                                Username = commentView.Creator.DisplayName ?? commentView.Creator.Name,
+                                                AvatarUrl = commentView.Creator.Avatar
                                             };
                                             _historyManager.AddCommentRecord(processedComment);
                                             await _webhooks.SendToWebhooksAndUpdateStats(processedComment);

@@ -61,6 +61,7 @@ namespace LemmyNanny
                     foreach (var url in _urls)
                     {
                         await _httpClient.PostAsync(url, JsonContent.Create(processed));
+                        AnsiConsole.WriteLine($"Forwarded JsonContent to {url} succesfully.");
                     }
                 }
             }

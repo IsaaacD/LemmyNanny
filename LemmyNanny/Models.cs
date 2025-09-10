@@ -40,6 +40,8 @@ namespace LemmyNanny
         public bool IsReported => Reason?.StartsWith("Yes") ?? false;
         public List<string> History { get; set; } = [];
         public ProcessedType ProcessedType { get; set; }
+        public string? Username { get; set; }
+        public string? AvatarUrl { get; set; }
     }
 
 
