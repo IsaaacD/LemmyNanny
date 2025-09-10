@@ -11,7 +11,7 @@ namespace LemmyNanny
 
         private readonly string _prompt;
         private readonly IOllamaApiClient _ollamaApiClient;
-        private string _fullPrompt => $"{_prompt}\r\nPlease output only 'Yes' if violation occurred or 'No' if the content is safe. After 'Yes', expand on what the post is about and violations that occurred.";
+        private string _fullPrompt => $"{_prompt}\r\nPlease output only 'Yes' if violation occurred or 'No', then guide based on this given prompt."; //if the content is safe. After 'Yes', expand on what the post is about and violations that occurred.";
 
         public OllamaManager(IOllamaApiClient ollamaApiClient, string prompt)
         {
@@ -19,8 +19,9 @@ namespace LemmyNanny
             _ollamaApiClient = ollamaApiClient;
         }
 
-        public async Task<PromptContent> CheckContent(PromptContent content, CancellationToken cancellation = default)
+        public async Task<PromptResponse> CheckContent(PromptContent content, CancellationToken cancellation = default)
         {
+            var promptResponse = new PromptResponse();
             try
             {
                 var chat = new Chat(_ollamaApiClient, _fullPrompt);
@@ -33,16 +34,18 @@ namespace LemmyNanny
                     AnsiConsole.MarkupInterpolated($"[yellow]{chatResult}[/]");
                 }
                 AnsiConsole.WriteLine("");
-                content.Result = sb.ToString();
+                promptResponse.Result = sb.ToString();
             }
             catch (Exception)
             {
                 AnsiConsole.WriteLine($"{DateTime.Now}: Issue with prompt {content.Id}");
-                content.Failed = true;
-                content.Result = "Failed to check";
+                promptResponse.Failed = true;
+                promptResponse.Result = "Failed to check";
             }
 
-            return content;
+            content.PromptResponse = promptResponse;
+
+            return promptResponse;
         }
 
     }

@@ -2,6 +2,6 @@
 {
     public interface IOllamaManager
     {
-        Task<PromptContent> CheckContent(PromptContent content, CancellationToken cancellation = default);
+        Task<PromptResponse> CheckContent(PromptContent content, CancellationToken cancellation = default);
     }
 }

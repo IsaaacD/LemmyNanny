@@ -2,6 +2,7 @@
 using dotNETLemmy.API.Types;
 using dotNETLemmy.API.Types.Enums;
 using LemmyNanny.Interfaces;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OllamaSharp;
@@ -22,7 +23,8 @@ namespace LemmyNanny
                 new LemmyNannyWorker(provider.GetRequiredService<IHistoryManager>(), 
                 provider.GetRequiredService<IImagesManager>(),
                 provider.GetRequiredService<IOllamaManager>(),
-                provider.GetRequiredService<ILemmyManager>()));
+                provider.GetRequiredService<ILemmyManager>(),
+                provider.GetRequiredService<IWebhooksManager>()));
 
             var dbName = builder.Configuration["SqliteDb"] // defaults to SqliteDb value, if not present makes a new db
                 ?? $"LemmyNanny-{sortType}-{listingType}-{DateTime.Now.ToString("yyyy-MM-dd hh-mm")}.db";
@@ -35,15 +37,13 @@ namespace LemmyNanny
                 });
             builder.Services.AddHttpClient(ImagesManager.CLIENT_NAME);
             builder.Services.AddSingleton<IImagesManager, ImagesManager>(pro=> new ImagesManager(pro.GetRequiredService<IHttpClientFactory>()));
-
+            builder.Services.AddHttpClient(WebhooksManager.CLIENT_NAME);
+            builder.Services.AddSingleton<IWebhooksManager>(pro=> new WebhooksManager(pro.GetRequiredService<IHttpClientFactory>(), urls: builder.Configuration.GetRequiredSection("Webhooks").Get<List<string>>()!, DateTime.Now));
             builder.Services.AddSingleton<ILemmyManager>(provider => new LemmyManager(provider.GetRequiredService<ILemmyHttpClient>(), Enum.Parse<SortType>(sortType), Enum.Parse<ListingType>(listingType)));
             builder.Services.AddSingleton<IOllamaApiClient>(pro =>
             {
                 var http = pro.GetRequiredService<IHttpClientFactory>();
-                var client = new OllamaApiClient(http.CreateClient(OllamaManager.CLIENT_NAME))
-                {
-                    SelectedModel = builder.Configuration["OllamaModel"] ?? throw new Exception("OllamaModel not set")
-                };
+                var client = new OllamaApiClient(http.CreateClient(OllamaManager.CLIENT_NAME), builder.Configuration["OllamaModel"] ?? throw new Exception("OllamaModel not set"));
                 return client;
             });
             builder.Services.AddSingleton<IOllamaManager>(pro => new OllamaManager(pro.GetRequiredService<IOllamaApiClient>(), builder.Configuration["Prompt"] ?? throw new Exception("Prompt not set")));
