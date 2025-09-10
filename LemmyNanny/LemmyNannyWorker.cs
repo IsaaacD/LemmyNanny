@@ -11,13 +11,15 @@ namespace LemmyNanny
         private readonly IImagesManager _imagesManager;
         private readonly IOllamaManager _ollamaManager;
         private readonly ILemmyManager _lemmyManager;
+        private readonly IWebhooksManager _webhooks;
   
-        public LemmyNannyWorker(IHistoryManager historyManager, IImagesManager imagesManager, IOllamaManager ollamaManager, ILemmyManager lemmyManager)
+        public LemmyNannyWorker(IHistoryManager historyManager, IImagesManager imagesManager, IOllamaManager ollamaManager, ILemmyManager lemmyManager, IWebhooksManager webhooks)
         {
             _historyManager = historyManager;
             _imagesManager = imagesManager;
             _ollamaManager = ollamaManager;
             _lemmyManager = lemmyManager;
+            _webhooks = webhooks;
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -67,7 +69,7 @@ namespace LemmyNanny
 
                             AnsiConsole.WriteLine("");
 
-                            if (!promptContent.ReportThis)
+                            if (!content.ReportThis)
                             {
                                 AnsiConsole.WriteLine($"{DateTime.Now}: Found 'No', did not report {post?.Post?.Id}.");
                             }
@@ -78,6 +80,19 @@ namespace LemmyNanny
                                 AnsiConsole.WriteLine("");
                                 await _lemmyManager.TryPostReport(promptContent, cancellationToken);
                             }
+
+                            var processedPost = new Processed
+                            {
+                                Id = post!.Post.Id,
+                                Reason = content.Result,
+                                Url = post.Post.ApId,
+                                Title = post.Post.Name,
+                                Content = post.Post.Body,
+                                ProcessedType = ProcessedType.Post
+                            };
+
+                            _historyManager.AddPostRecord(processedPost);
+                            await _webhooks.SendToWebhooksAndUpdateStats(processedPost);
 
                             if (post!.Counts.Comments > 0)
                             {
@@ -107,8 +122,16 @@ namespace LemmyNanny
                                             {
                                                 await _lemmyManager.TryCommentReport(commentContent, cancellationToken);
                                             }
-
-                                            _historyManager.AddCommentRecord(new ProcessedComment { Id = commentView.Comment.Id, PostId = commentView.Comment.PostId, Url = commentView.Comment.ApId, Reason = results.Result ?? "" });
+                                            var processedComment = new Processed { 
+                                                Id = commentView.Comment.Id, 
+                                                Content=commentView.Comment.Content, 
+                                                PostId = commentView.Comment.PostId, 
+                                                Url = commentView.Comment.ApId, 
+                                                Reason = results.Result ?? "" ,
+                                                ProcessedType = ProcessedType.Comment
+                                            };
+                                            _historyManager.AddCommentRecord(processedComment);
+                                            await _webhooks.SendToWebhooksAndUpdateStats(processedComment);
                                         }
                                         else
                                         {
@@ -117,12 +140,7 @@ namespace LemmyNanny
                                     }
                                 }
                             }
-                            _historyManager.AddPostRecord(new ProcessedPost
-                            {
-                                Id = post.Post.Id,
-                                Reason = content.Result,
-                                Url = post.Post.ApId
-                            });
+
                         }
                         else
                         {

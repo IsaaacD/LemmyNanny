@@ -60,7 +60,7 @@ namespace LemmyNanny.Tests
         {
             var historyManager = new HistoryManager(myDatabase);
             historyManager.SetupDatabase();
-            historyManager.AddPostRecord(new ProcessedPost { Id=11, Reason = "Yes", Url="http://asdsd.com" });
+            historyManager.AddPostRecord(new Processed { Id=11, ProcessedType = ProcessedType.Post, Reason = "Yes", Url="http://asdsd.com" });
             var hasRecord = historyManager.HasPostRecord(11, out _);
             Assert.IsTrue(hasRecord);
         }
@@ -81,7 +81,7 @@ namespace LemmyNanny.Tests
                     Assert.IsFalse(hasRows);
                 }
             }
-            historyManager.AddPostRecord(new ProcessedPost {  Reason="Yes", Id = 1, Url = "fake.com" });
+            historyManager.AddPostRecord(new Processed {  Reason="Yes", ProcessedType = ProcessedType.Post, Id = 1, Url = "fake.com" });
             using (var connection = new SqliteConnection($"DataSource={myDatabase}"))
             {
                 connection.Open();

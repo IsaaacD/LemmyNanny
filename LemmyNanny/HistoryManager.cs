@@ -44,26 +44,32 @@ namespace LemmyNanny
             }
         }
 
-        public void AddPostRecord(ProcessedPost post)
+        public void AddPostRecord(Processed post)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            if (post.ProcessedType == ProcessedType.Post)
             {
-                connection.Open();
-                var command = connection.CreateCommand();
-                command.CommandText =
-                        @$"
+                using (var connection = new SqliteConnection(_connectionString))
+                {
+                    connection.Open();
+                    var command = connection.CreateCommand();
+                    command.CommandText =
+                            @$"
                             INSERT INTO seen_posts (post_id, url, remarks, timestamp, is_reported)
                             VALUES ($id, $url, $remarks, $timestamp, $reported);
                         ";
-                command.Parameters.AddWithValue("$id", post.Id);
-                command.Parameters.AddWithValue("$url", post.Url);
-                command.Parameters.AddWithValue("$remarks", post.Reason);
-                command.Parameters.AddWithValue("$timestamp", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
-                command.Parameters.AddWithValue("$reported", post.IsYes ? 1 : 0);
-                command.ExecuteNonQuery();
+                    command.Parameters.AddWithValue("$id", post.Id);
+                    command.Parameters.AddWithValue("$url", post.Url);
+                    command.Parameters.AddWithValue("$remarks", post.Reason);
+                    command.Parameters.AddWithValue("$timestamp", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
+                    command.Parameters.AddWithValue("$reported", post.IsReported ? 1 : 0);
+                    command.ExecuteNonQuery();
+                }
+                AnsiConsole.WriteLine($"{DateTime.Now}: Wrote post {post.Id} to db.");
             }
-            AnsiConsole.WriteLine($"{DateTime.Now}: Wrote post {post.Id} to db.");
-
+            else
+            {
+                AnsiConsole.WriteLine("Set flag for post to ProcessedType.Post");
+            }
         }
 
         public bool HasPostRecord(int id, out string timestamp)
@@ -128,26 +134,33 @@ namespace LemmyNanny
             return alreadySeen;
         }
 
-        public void AddCommentRecord(ProcessedComment comment)
+        public void AddCommentRecord(Processed comment)
         {
-            using (var connection = new SqliteConnection(_connectionString))
+            if (comment.ProcessedType == ProcessedType.Comment)
             {
-                connection.Open();
-                var command = connection.CreateCommand();
-                command.CommandText =
-                        @$"
+                using (var connection = new SqliteConnection(_connectionString))
+                {
+                    connection.Open();
+                    var command = connection.CreateCommand();
+                    command.CommandText =
+                            @$"
                             INSERT INTO seen_comments (comment_id, post_id, url, remarks, timestamp, is_reported)
                             VALUES ($commentid, $postid, $url, $remarks, $timestamp, $reported);
                         ";
-                command.Parameters.AddWithValue("$commentid", comment.Id);
-                command.Parameters.AddWithValue("$postid", comment.PostId);
-                command.Parameters.AddWithValue("$url", comment.Url);
-                command.Parameters.AddWithValue("$remarks", comment.Reason);
-                command.Parameters.AddWithValue("$timestamp", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
-                command.Parameters.AddWithValue("$reported", comment.IsYes ? 1 : 0);
-                command.ExecuteNonQuery();
+                    command.Parameters.AddWithValue("$commentid", comment.Id);
+                    command.Parameters.AddWithValue("$postid", comment.PostId);
+                    command.Parameters.AddWithValue("$url", comment.Url);
+                    command.Parameters.AddWithValue("$remarks", comment.Reason);
+                    command.Parameters.AddWithValue("$timestamp", DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"));
+                    command.Parameters.AddWithValue("$reported", comment.IsReported ? 1 : 0);
+                    command.ExecuteNonQuery();
+                }
+                AnsiConsole.WriteLine($"{DateTime.Now}: Wrote comment {comment.Id} to db.");
             }
-            AnsiConsole.WriteLine($"{DateTime.Now}: Wrote comment {comment.Id} to db.");
+            else
+            {
+                AnsiConsole.WriteLine("Set flag for comment to ProcessedType.Comment");
+            }
         }
     }
 }

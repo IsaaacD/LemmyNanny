@@ -80,7 +80,7 @@ namespace LemmyNanny
 
         public async Task<bool> TryCommentReport(PromptContent content, CancellationToken token = default)
         {
-            if (!string.IsNullOrEmpty(_lemmyHttpClient.Username))
+            if (!string.IsNullOrEmpty(_lemmyHttpClient.Username) && content.PromptResponse != null)
             {
                 var loginForm = new LoginForm
                 {
@@ -90,10 +90,11 @@ namespace LemmyNanny
 
                 var loginResponse = await _lemmyHttpClient.Login(loginForm);
 
-                var report = new CreateCommentReportForm() { Auth = loginResponse.Jwt, CommentId = content.Id, Reason = content.Result! };
+                var report = new CreateCommentReportForm() { Auth = loginResponse.Jwt, CommentId = content.Id, Reason = content.PromptResponse!.Result! };
                 var resp = await _lemmyHttpClient.SendAsync<CommentReportResponse>(report);
                 AnsiConsole.WriteLine($"{DateTime.Now}: Reported {content.Id}.");
                 return true;
+
             }
             else
             {
@@ -104,7 +105,7 @@ namespace LemmyNanny
 
         public async Task<bool> TryPostReport(PromptContent content, CancellationToken token = default)
         {
-            if (!string.IsNullOrEmpty(_lemmyHttpClient.Username))
+            if (!string.IsNullOrEmpty(_lemmyHttpClient.Username) && content.PromptResponse != null)
             {
                 var loginForm = new LoginForm
                 {
@@ -114,7 +115,7 @@ namespace LemmyNanny
 
                 var loginResponse = await _lemmyHttpClient.Login(loginForm);
 
-                var report = new CreatePostReportForm() { Auth = loginResponse.Jwt, PostId = content.Id, Reason = content.Result! };
+                var report = new CreatePostReportForm() { Auth = loginResponse.Jwt, PostId = content.Id, Reason = content.PromptResponse.Result! };
                 var resp = await _lemmyHttpClient.CreatePostReport(report);
                 AnsiConsole.WriteLine($"{DateTime.Now}: Reported {content.Id}.");
                 return true;
