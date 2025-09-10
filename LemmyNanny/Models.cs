@@ -42,6 +42,10 @@ namespace LemmyNanny
         public ProcessedType ProcessedType { get; set; }
         public string? Username { get; set; }
         public string? AvatarUrl { get; set; }
+        public DateTime ProcessedOn { get; set; }
+        public string? CreatedDate { get; set; }
+        public string? PostUrl { get; set; }
+        public string? ExtraInfo { get; set; }
     }
 
 

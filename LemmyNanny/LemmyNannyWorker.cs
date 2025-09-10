@@ -90,7 +90,11 @@ namespace LemmyNanny
                                 Content = post.Post.Body,
                                 ProcessedType = ProcessedType.Post,
                                 Username = post.Creator.DisplayName ?? post.Creator.Name,
-                                AvatarUrl = post.Creator.Avatar
+                                AvatarUrl = post.Creator.Avatar,
+                                ProcessedOn = DateTime.UtcNow,
+                                CreatedDate = post.Post.Published,
+                                PostUrl = post.Post.ApId,
+                                ExtraInfo = $"Processed {_webhooks.Posts} posts in {Math.Round(_webhooks.ElapsedTime.TotalHours,4,MidpointRounding.AwayFromZero)} hours. Total Comments {_webhooks.Comments}."
                             };
 
                             _historyManager.AddPostRecord(processedPost);
@@ -127,12 +131,17 @@ namespace LemmyNanny
                                             var processedComment = new Processed { 
                                                 Id = commentView.Comment.Id, 
                                                 Content=commentView.Comment.Content, 
-                                                PostId = commentView.Comment.PostId, 
+                                                PostId = commentView.Comment.PostId,
+                                                Title = commentView.Post.Name,
                                                 Url = commentView.Comment.ApId, 
                                                 Reason = results.Result ?? "" ,
                                                 ProcessedType = ProcessedType.Comment,
                                                 Username = commentView.Creator.DisplayName ?? commentView.Creator.Name,
-                                                AvatarUrl = commentView.Creator.Avatar
+                                                AvatarUrl = commentView.Creator.Avatar,
+                                                ProcessedOn = DateTime.UtcNow,
+                                                CreatedDate = commentView.Comment.Published,
+                                                PostUrl = post.Post.ApId,
+                                                ExtraInfo = $"Processing {currentCount}/{post.Counts.Comments} comments for '{post.Post.Name}'."
                                             };
                                             _historyManager.AddCommentRecord(processedComment);
                                             await _webhooks.SendToWebhooksAndUpdateStats(processedComment);
