@@ -94,7 +94,7 @@ namespace LemmyNanny
                                 ProcessedOn = DateTime.UtcNow,
                                 CreatedDate = post.Post.Published,
                                 PostUrl = post.Post.ApId,
-                                ExtraInfo = $"Processed {_webhooks.Posts} posts in {Math.Round(_webhooks.ElapsedTime.TotalHours,4,MidpointRounding.AwayFromZero)} hours. Total Comments {_webhooks.Comments}."
+                                ExtraInfo = $"Processed {_webhooks.Posts} posts ({post.Counts.Comments} comments) in {Math.Round(_webhooks.ElapsedTime.TotalHours,4,MidpointRounding.AwayFromZero)} hours. Total Comments {_webhooks.Comments}."
                             };
 
                             _historyManager.AddPostRecord(processedPost);
@@ -116,7 +116,7 @@ namespace LemmyNanny
                                   
                                         AnsiConsole.WriteLine($"Processing {++currentCount}/{post.Counts.Comments} comments.");
                                         var hasSeen = _historyManager.HasCommentRecord(commentView.Comment.Id, out _);
-                                        if (!hasSeen)
+                                        if (!hasSeen && !commentView.Comment.Deleted)
                                         {
                                             AnsiConsole.WriteLine($"{DateTime.Now}: Checking comment: {commentView.Comment.Content}");
                                             var commentContent = new PromptContent { Id = commentView.Comment.Id, Content = $"This is the comment: ```{commentView.Comment.Content}```" };
