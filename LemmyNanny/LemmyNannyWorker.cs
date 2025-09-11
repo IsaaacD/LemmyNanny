@@ -63,6 +63,12 @@ namespace LemmyNanny
                             if(urlBytes != null)
                                 promptContent.ImageBytes.Add(urlBytes);
 
+                            var thumbBytes = await _imagesManager.GetImageBytes(post.Post.ThumbnailUrl ?? "", cancellationToken);
+                            if (thumbBytes != null)
+                            {
+                                promptContent.ImageBytes.Add(thumbBytes);
+                            }
+
                             promptContent = await _imagesManager.GetImageBytes(promptContent, cancellationToken);
 
                             var content = await _ollamaManager.CheckContent( promptContent, cancellationToken );

@@ -9,7 +9,7 @@ namespace LemmyNanny
         public string? Content { get; set; }
         public List<byte[]> ImageBytes { get; set; } = new List<byte[]>();
 
-        public MatchCollection ImageMatches => Regex.Matches(Content!, @"!\[[^\]]*\]\(([^\s]+[.](png|svg|jpeg|webp))\)",
+        public MatchCollection ImageMatches => Regex.Matches(Content ?? string.Empty, @"!\[[^\]]*\]\(([^\s]+[.](png|svg|jpeg|webp))\)",
                                                RegexOptions.None,
                                                TimeSpan.FromSeconds(1));
         public PromptResponse? PromptResponse { get; set; }
@@ -46,12 +46,17 @@ namespace LemmyNanny
         public string? CreatedDate { get; set; }
         public string? PostUrl { get; set; }
         public string? ExtraInfo { get; set; }
+
+        public int WordCount => Regex.Matches(Content ?? "" + Reason ?? "", @"[\w-]+").Count;
     }
 
     public class WebhookConfig
     {
         public string? Url { get; set; }
         public string? Secret { get; set; }
+        public int FailedTimes { get; set; } = 0;
+
+        public bool ShouldProcess => FailedTimes < 3;
     }
 
 }
