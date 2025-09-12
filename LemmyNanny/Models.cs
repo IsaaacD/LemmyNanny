@@ -46,6 +46,7 @@ namespace LemmyNanny
         public string? CreatedDate { get; set; }
         public string? PostUrl { get; set; }
         public string? ExtraInfo { get; set; }
+        public string? CommentNumber { get; set; }
         public string? CommunityName { get; set; }
         public string? ThumbnailUrl { get; set; }
         public int WordCount => Regex.Matches(Content ?? "" + Reason ?? "", @"[\w-]+").Count;

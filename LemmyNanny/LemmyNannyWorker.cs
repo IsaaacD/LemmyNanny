@@ -102,6 +102,7 @@ namespace LemmyNanny
                                 CreatedDate = post.Post.Published,
                                 PostUrl = post.Post.ApId,
                                 ThumbnailUrl = post.Post.ThumbnailUrl,
+                                CommentNumber = post.Counts.Comments.ToString(),
                                 CommunityName= post.Community.Name,
                                 ExtraInfo = $"Processed {_webhooks.Posts} posts and {_webhooks.Comments} comments in {_webhooks.ElapsedTime.ToReadableString()}."
                             };
@@ -122,8 +123,8 @@ namespace LemmyNanny
 
                                     foreach (var commentView in comments.Comments)
                                     {
-                                  
-                                        AnsiConsole.WriteLine($"Processing {++currentCount}/{post.Counts.Comments} comments.");
+                                        var commentNumber = $"{++currentCount}/{post.Counts.Comments}";
+                                        AnsiConsole.WriteLine($"Processing {commentNumber} comments.");
                                         var hasSeen = _historyManager.HasCommentRecord(commentView.Comment.Id, out _);
                                         if (!hasSeen && !commentView.Comment.Deleted)
                                         {
@@ -151,6 +152,7 @@ namespace LemmyNanny
                                                 CommunityName = commentView.Community.Name,
                                                 CreatedDate = commentView.Comment.Published,
                                                 PostUrl = post.Post.ApId,
+                                                CommentNumber = commentNumber,
                                                 ExtraInfo = $"Processed {_webhooks.Posts} posts and {_webhooks.Comments} comments in {_webhooks.ElapsedTime.ToReadableString()}."
                                             };
                                             _historyManager.AddCommentRecord(processedComment);
