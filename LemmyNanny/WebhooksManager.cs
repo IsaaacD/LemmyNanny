@@ -23,7 +23,7 @@ namespace LemmyNanny
         public int PostsFlagged { get; private set; }
 
         public DateTime StartTime { get; private set; }
-        public TimeSpan ElapsedTime => DateTime.Now - StartTime;
+        public TimeSpan ElapsedTime => DateTime.UtcNow - StartTime;
         public List<Processed> History { get; set; } = [];
 
         public WebhooksManager(IHttpClientFactory httpClientFactory, List<WebhookConfig> urls, DateTime datetime, bool readingMode)

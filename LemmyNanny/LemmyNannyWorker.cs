@@ -1,4 +1,5 @@
-﻿using LemmyNanny.Interfaces;
+﻿using LemmyNanny.Helpers;
+using LemmyNanny.Interfaces;
 using Microsoft.Extensions.Hosting;
 using Spectre.Console;
 using System.Text.RegularExpressions;
@@ -100,7 +101,9 @@ namespace LemmyNanny
                                 ProcessedOn = DateTime.UtcNow,
                                 CreatedDate = post.Post.Published,
                                 PostUrl = post.Post.ApId,
-                                ExtraInfo = $"Processed {_webhooks.Posts} posts ({post.Counts.Comments} comments) in {Math.Round(_webhooks.ElapsedTime.TotalHours,4,MidpointRounding.AwayFromZero)} hours. Total Comments {_webhooks.Comments}."
+                                ThumbnailUrl = post.Post.ThumbnailUrl,
+                                CommunityName= post.Community.Name,
+                                ExtraInfo = $"Processed {_webhooks.Posts} posts and {_webhooks.Comments} comments in {_webhooks.ElapsedTime.ToReadableString()}."
                             };
 
                             _historyManager.AddPostRecord(processedPost);
@@ -145,9 +148,10 @@ namespace LemmyNanny
                                                 Username = commentView.Creator.DisplayName ?? commentView.Creator.Name,
                                                 AvatarUrl = commentView.Creator.Avatar,
                                                 ProcessedOn = DateTime.UtcNow,
+                                                CommunityName = commentView.Community.Name,
                                                 CreatedDate = commentView.Comment.Published,
                                                 PostUrl = post.Post.ApId,
-                                                ExtraInfo = $"Processing {currentCount}/{post.Counts.Comments} comments for '{post.Post.Name}'."
+                                                ExtraInfo = $"Processed {_webhooks.Posts} posts and {_webhooks.Comments} comments in {_webhooks.ElapsedTime.ToReadableString()}."
                                             };
                                             _historyManager.AddCommentRecord(processedComment);
                                             await _webhooks.SendToWebhooksAndUpdateStats(processedComment);
