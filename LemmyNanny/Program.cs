@@ -38,7 +38,11 @@ namespace LemmyNanny
             builder.Services.AddHttpClient(ImagesManager.CLIENT_NAME);
             builder.Services.AddSingleton<IImagesManager, ImagesManager>(pro=> new ImagesManager(pro.GetRequiredService<IHttpClientFactory>()));
             builder.Services.AddHttpClient(WebhooksManager.CLIENT_NAME);
-            builder.Services.AddSingleton<IWebhooksManager>(pro=> new WebhooksManager(pro.GetRequiredService<IHttpClientFactory>(), urls: builder.Configuration.GetRequiredSection("Webhooks").Get<List<string>>()!, DateTime.Now));
+            builder.Services.AddSingleton<IWebhooksManager>(pro=> 
+            new WebhooksManager(pro.GetRequiredService<IHttpClientFactory>(), 
+                urls: builder.Configuration.GetRequiredSection("Webhooks").Get<List<WebhookConfig>>()!, 
+                DateTime.UtcNow,
+                builder.Configuration.GetValue<bool>("ReadingMode")));
             builder.Services.AddSingleton<ILemmyManager>(provider => new LemmyManager(provider.GetRequiredService<ILemmyHttpClient>(), Enum.Parse<SortType>(sortType), Enum.Parse<ListingType>(listingType)));
             builder.Services.AddSingleton<IOllamaApiClient>(pro =>
             {

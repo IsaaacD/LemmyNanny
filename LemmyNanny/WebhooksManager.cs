@@ -1,15 +1,21 @@
 ﻿using dotNETLemmy.API.Types;
 using LemmyNanny.Interfaces;
 using Spectre.Console;
+using System.Diagnostics;
 using System.Net.Http.Json;
 
 namespace LemmyNanny
 {
     public class WebhooksManager : IWebhooksManager
     {
+        private Stopwatch _timer = new();
+        private long _lastWaitTime = 0;
+
         public static string CLIENT_NAME = "WebhooksClient";
+
         private readonly HttpClient _httpClient;
-        private readonly List<string> _urls;
+        private readonly List<WebhookConfig> _urls;
+        private readonly bool _readingMode;
 
         public int Posts { get; private set; }
         public int Comments { get; private set; }
@@ -17,14 +23,15 @@ namespace LemmyNanny
         public int PostsFlagged { get; private set; }
 
         public DateTime StartTime { get; private set; }
-        public TimeSpan ElapsedTime => DateTime.Now - StartTime;
+        public TimeSpan ElapsedTime => DateTime.UtcNow - StartTime;
         public List<Processed> History { get; set; } = [];
 
-        public WebhooksManager(IHttpClientFactory httpClientFactory, List<string> urls, DateTime datetime)
+        public WebhooksManager(IHttpClientFactory httpClientFactory, List<WebhookConfig> urls, DateTime datetime, bool readingMode)
         {
             _httpClient = httpClientFactory.CreateClient(CLIENT_NAME);
             _urls = urls;
             StartTime = datetime;
+            _readingMode = readingMode;
         }
 
         public async Task SendToWebhooksAndUpdateStats(Processed processed)
@@ -47,6 +54,20 @@ namespace LemmyNanny
                 default:
                     break;
             }
+
+            if (_timer.IsRunning)
+            {
+                var elapsed = _timer.ElapsedMilliseconds;
+                if (elapsed < _lastWaitTime)
+                { 
+                    var waiting = _lastWaitTime - elapsed;
+                    AnsiConsole.WriteLine($"Waiting for users to read last post: {waiting}ms/{_lastWaitTime}ms");
+                    await Task.Delay((int)waiting);
+                }
+            }
+            _timer.Stop();
+            _timer.Reset();
+
             History.Add(processed);
 
             if (History.Count > 50)
@@ -54,20 +75,35 @@ namespace LemmyNanny
                 History.RemoveAt(0);
             }
 
-            try
+
+            if (_urls.Count != 0)
             {
-                if (_urls.Count != 0)
+                foreach (var config in _urls)
                 {
-                    foreach (var url in _urls)
+                    if (config.ShouldProcess)
                     {
-                        await _httpClient.PostAsync(url, JsonContent.Create(processed));
-                        AnsiConsole.WriteLine($"Forwarded JsonContent to {url} succesfully.");
+                        try
+                        {
+                            config.FailedTimes = 0;
+                            var jsonContent = JsonContent.Create(processed);
+                            jsonContent.Headers.Add("ClientSecret", config.Secret);
+                            await _httpClient.PostAsync(config.Url, jsonContent);
+                            AnsiConsole.WriteLine($"Forwarded JsonContent to {config.Url} succesfully.");
+                        }
+                        catch (Exception)
+                        {
+                            config.FailedTimes++;
+                            AnsiConsole.MarkupLineInterpolated($"[red]***There was an issue sending to {config.Url} webhook. Failed {config.FailedTimes} times.***[/]");
+                        }
                     }
                 }
             }
-            catch (Exception)
+
+            if (_readingMode)
             {
-                AnsiConsole.MarkupLineInterpolated($"***[red]There was an issue with connection to one of the webhooks.***[/]");
+                _timer.Start();
+                // add timer to  class and wait for time remaining of this so processing happens in parallel
+                _lastWaitTime = processed.WordCount / 5 * 1000;
             }
         }
     }

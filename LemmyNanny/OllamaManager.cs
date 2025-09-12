@@ -28,6 +28,7 @@ namespace LemmyNanny
                 var chatResults = chat.SendAsync(content.Content!, content.ImageBytes, cancellation);
              
                 var sb = new StringBuilder();
+                AnsiConsole.WriteLine("");
                 await foreach (var chatResult in chatResults)
                 {
                     sb.Append(chatResult);

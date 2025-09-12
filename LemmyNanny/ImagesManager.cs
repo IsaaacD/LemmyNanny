@@ -13,6 +13,14 @@ namespace LemmyNanny
         public ImagesManager(IHttpClientFactory httpClientFactory)
         {
             _httpClient = httpClientFactory.CreateClient(CLIENT_NAME);
+
+            // image post not displaying https://lemmy.world/post/35674143
+
+            // https://quokk.au/post/260327
+            //https://lemmy.ml/post/35970324
+            // https://europe.pub/post/4381176
+
+            // another issue "Failed to check"
         }
 
         public async Task<PromptContent> GetImageBytes(PromptContent content, CancellationToken token)
