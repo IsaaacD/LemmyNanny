@@ -13,6 +13,8 @@ namespace LemmyNanny
                                                RegexOptions.None,
                                                TimeSpan.FromSeconds(1));
         public PromptResponse? PromptResponse { get; set; }
+
+        public List<string> ExtraImages { get; set; } = [];
     }
 
     public class PromptResponse
