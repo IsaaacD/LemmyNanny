@@ -25,7 +25,7 @@ namespace LemmyNanny.Tests
         [TestMethod]
         public void SetupDatabase_Creates_Database_and_Tables()
         {
-            var historyManager = new HistoryManager(myDatabase);
+            var historyManager = new HistoryManager(myDatabase, true);
             historyManager.SetupDatabase();
             var tables = new List<string>();
             using (var connection = new SqliteConnection($"DataSource={myDatabase}"))
@@ -49,7 +49,7 @@ namespace LemmyNanny.Tests
         [TestMethod]
         public void HasRecord_Returns_False_When_No_Record()
         {
-            var historyManager = new HistoryManager(myDatabase);
+            var historyManager = new HistoryManager(myDatabase, true);
             historyManager.SetupDatabase();
             var hasRecord = historyManager.HasPostRecord(111, out _);
             Assert.IsFalse(hasRecord);
@@ -58,7 +58,7 @@ namespace LemmyNanny.Tests
         [TestMethod]
         public void HasRecord_Returns_True_When_Record()
         {
-            var historyManager = new HistoryManager(myDatabase);
+            var historyManager = new HistoryManager(myDatabase, true);
             historyManager.SetupDatabase();
             historyManager.AddPostRecord(new Processed { Id=11, ProcessedType = ProcessedType.Post, Reason = "Yes", Url="http://asdsd.com" });
             var hasRecord = historyManager.HasPostRecord(11, out _);
@@ -68,7 +68,7 @@ namespace LemmyNanny.Tests
         [TestMethod]
         public void AddRecord_Creates_Record()
         {
-            var historyManager = new HistoryManager(myDatabase);
+            var historyManager = new HistoryManager(myDatabase, true);
             historyManager.SetupDatabase();
             using (var connection = new SqliteConnection($"DataSource={myDatabase}"))
             {

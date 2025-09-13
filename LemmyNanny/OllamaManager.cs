@@ -38,7 +38,7 @@ namespace LemmyNanny
                 promptResponse.Result = sb.ToString();
                 promptResponse.ImagesProcessed = content.ImageBytes.Count;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 AnsiConsole.WriteLine($"{DateTime.Now}: Issue with prompt {content.Id}");
                 promptResponse.Failed = true;

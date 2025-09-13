@@ -51,15 +51,16 @@ namespace LemmyNanny
 
             foreach (Match imageUrl in content.ImageMatches)
             {
-                if (!seenImages.Contains(imageUrl.Value))
+                var valStr = imageUrl.Groups[1].Value;
+                if (!seenImages.Contains(valStr))
                 {
-                    var results = await GetImageBytes(imageUrl.Value, token);
+                    var results = await GetImageBytes(valStr, token);
 
                     if (results != null)
                     {
                         content.ImageBytes.Add(results);
                     }
-                    seenImages.Add(imageUrl.Value);
+                    seenImages.Add(valStr);
                 }
             }
 
@@ -76,12 +77,15 @@ namespace LemmyNanny
             }
             try
             {
-                results = await _httpClient.GetByteArrayAsync(url, token);
-                if (results != null)
+                if(url.StartsWith("http") && (url.Trim('/').EndsWith("png") || url.Trim('/').EndsWith("jpeg") || url.Trim('/').EndsWith("jpg")))
                 {
-                    AnsiConsole.WriteLine("");
-                    AnsiConsole.Write(new CanvasImage(results) { MaxWidth = 40 });
-                    AnsiConsole.WriteLine("");
+                    results = await _httpClient.GetByteArrayAsync(url, token);
+                    if (results != null)
+                    {
+                        AnsiConsole.WriteLine("");
+                        AnsiConsole.Write(new CanvasImage(results) { MaxWidth = 40 });
+                        AnsiConsole.WriteLine("");
+                    }
                 }
             }
             catch (UnknownImageFormatException)
