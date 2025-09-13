@@ -36,6 +36,7 @@ namespace LemmyNanny
                 }
                 AnsiConsole.WriteLine("");
                 promptResponse.Result = sb.ToString();
+                promptResponse.ImagesProcessed = content.ImageBytes.Count;
             }
             catch (Exception)
             {
