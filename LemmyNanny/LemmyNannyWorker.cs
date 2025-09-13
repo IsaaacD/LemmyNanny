@@ -104,6 +104,8 @@ namespace LemmyNanny
                                 ThumbnailUrl = post.Post.ThumbnailUrl,
                                 CommentNumber = post.Counts.Comments.ToString(),
                                 CommunityName= post.Community.Name,
+                                Failed = content.Failed,
+                                ViewedImages = content.ImagesProcessed > 0,
                                 ExtraInfo = $"Processed {_webhooks.Posts} posts and {_webhooks.Comments} comments in {_webhooks.ElapsedTime.ToReadableString()}."
                             };
 
@@ -152,7 +154,9 @@ namespace LemmyNanny
                                                 CommunityName = commentView.Community.Name,
                                                 CreatedDate = commentView.Comment.Published,
                                                 PostUrl = post.Post.ApId,
-                                                CommentNumber = commentNumber,
+                                                CommentNumber = commentNumber, 
+                                                Failed = results.Failed,
+                                                ViewedImages = results.ImagesProcessed > 0,
                                                 ExtraInfo = $"Processed {_webhooks.Posts} posts and {_webhooks.Comments} comments in {_webhooks.ElapsedTime.ToReadableString()}."
                                             };
                                             _historyManager.AddCommentRecord(processedComment);

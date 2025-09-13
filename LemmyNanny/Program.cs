@@ -58,7 +58,7 @@ namespace LemmyNanny
                     Password = builder.Configuration["LemmyPassword"] ?? "",
                     Username = builder.Configuration["LemmyUserName"] ?? ""
                 });
-            builder.Services.AddSingleton<IHistoryManager>(o=> new HistoryManager(dbName));
+            builder.Services.AddSingleton<IHistoryManager>(o=> new HistoryManager(dbName, builder.Configuration.GetValue<bool>("WriteDb")));
 
 
             IHost host = builder.Build();

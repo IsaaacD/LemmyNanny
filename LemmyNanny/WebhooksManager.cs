@@ -84,11 +84,11 @@ namespace LemmyNanny
                     {
                         try
                         {
-                            config.FailedTimes = 0;
                             var jsonContent = JsonContent.Create(processed);
                             jsonContent.Headers.Add("ClientSecret", config.Secret);
                             await _httpClient.PostAsync(config.Url, jsonContent);
                             AnsiConsole.WriteLine($"Forwarded JsonContent to {config.Url} succesfully.");
+                            config.FailedTimes = 0;
                         }
                         catch (Exception)
                         {
