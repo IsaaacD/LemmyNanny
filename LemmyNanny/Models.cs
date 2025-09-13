@@ -22,6 +22,7 @@ namespace LemmyNanny
         public bool ReportThis => Result?.StartsWith("Yes") ?? false;
         public string? Result { get; set; }
         public bool Failed { get; set; }
+        public int ImagesProcessed { get; set; }
     }
 
     public enum ProcessedType
@@ -49,6 +50,8 @@ namespace LemmyNanny
         public string? PostUrl { get; set; }
         public string? ExtraInfo { get; set; }
         public string? CommentNumber { get; set; }
+        public bool Failed { get; set; }
+        public bool ViewedImages { get; set; }
         public string? CommunityName { get; set; }
         public string? ThumbnailUrl { get; set; }
         public int WordCount => Regex.Matches(Content ?? "" + Reason ?? "", @"[\w-]+").Count;

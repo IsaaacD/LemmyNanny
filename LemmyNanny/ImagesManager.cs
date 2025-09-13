@@ -26,6 +26,8 @@ namespace LemmyNanny
 
             // this one worked but no body https://lemmy.world/post/35686878
             // this one worked and full body https://programming.dev/post/37153435
+
+            //https://lemmy.dbzer0.com/post/53169987 checked properly and flagged it, unsure if because of image
         }
 
         public async Task<PromptContent> GetImageBytes(PromptContent content, CancellationToken token)
