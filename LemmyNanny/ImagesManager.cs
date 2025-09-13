@@ -1,6 +1,8 @@
 ﻿using LemmyNanny.Interfaces;
 using SixLabors.ImageSharp;
 using Spectre.Console;
+using System;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace LemmyNanny
@@ -30,20 +32,41 @@ namespace LemmyNanny
 
         public async Task<PromptContent> GetImageBytes(PromptContent content, CancellationToken token)
         {
+            var seenImages = new List<string>();
+
+            foreach (var url in content.ExtraImages)
+            {
+                if (!seenImages.Contains(url))
+                {
+                    var results = await GetImageBytes(url, token);
+
+                    if (results != null)
+                    {
+                        content.ImageBytes.Add(results);
+                    }
+                    seenImages.Add(url);
+                }
+
+            }
+
             foreach (Match imageUrl in content.ImageMatches)
             {
-                var results = await GetImageBytes(imageUrl.Value, token);
-
-                if (results != null)
+                if (!seenImages.Contains(imageUrl.Value))
                 {
-                    content.ImageBytes.Add(results);
+                    var results = await GetImageBytes(imageUrl.Value, token);
+
+                    if (results != null)
+                    {
+                        content.ImageBytes.Add(results);
+                    }
+                    seenImages.Add(imageUrl.Value);
                 }
             }
 
             return content;
         }
 
-        public async Task<byte[]?> GetImageBytes(string url, CancellationToken token = default)
+        public async Task<byte[]?> GetImageBytes(string? url, CancellationToken token = default)
         {
             byte[]? results = null;
 

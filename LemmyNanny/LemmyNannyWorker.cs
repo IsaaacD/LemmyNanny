@@ -55,20 +55,12 @@ namespace LemmyNanny
                         var promptContent = new PromptContent
                         {
                             Id = post.Post.Id,
-                            Content = postInfo
+                            Content = postInfo,
+                            ExtraImages = [post.Post.Url, post.Post.ThumbnailUrl]
                         };
 
                         if (!hasRecord)
-                        {
-                            var urlBytes = await _imagesManager.GetImageBytes(post.Post.Url ?? "", cancellationToken);
-                            if(urlBytes != null)
-                                promptContent.ImageBytes.Add(urlBytes);
-
-                            var thumbBytes = await _imagesManager.GetImageBytes(post.Post.ThumbnailUrl ?? "", cancellationToken);
-                            if (thumbBytes != null)
-                            {
-                                promptContent.ImageBytes.Add(thumbBytes);
-                            }
+                        {                         
 
                             promptContent = await _imagesManager.GetImageBytes(promptContent, cancellationToken);
 
