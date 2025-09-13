@@ -18,13 +18,23 @@ namespace LemmyNanny
 
             var sortType = builder.Configuration["SortType"] ?? "Active";
             var listingType = builder.Configuration["ListingType"] ?? "All";
-
+            var model = builder.Configuration["OllamaModel"];
             builder.Services.AddHostedService(provider =>
                 new LemmyNannyWorker(provider.GetRequiredService<IHistoryManager>(), 
                 provider.GetRequiredService<IImagesManager>(),
                 provider.GetRequiredService<IOllamaManager>(),
                 provider.GetRequiredService<ILemmyManager>(),
-                provider.GetRequiredService<IWebhooksManager>()));
+                provider.GetRequiredService<IWebhooksManager>(),
+                new StartUpStats
+                {
+                    LemmyHost = builder.Configuration["LemmyHost"]!,
+                     ListingType = listingType,
+                     SortType = sortType,
+                     Model = model!,
+                     Prompt = builder.Configuration["Prompt"]!,
+                     StartTime = DateTime.UtcNow,
+                     ReadingMode = builder.Configuration.GetValue<bool>("ReadingMode")
+                }));
 
             var dbName = builder.Configuration["SqliteDb"] // defaults to SqliteDb value, if not present makes a new db
                 ?? $"LemmyNanny-{sortType}-{listingType}-{DateTime.Now.ToString("yyyy-MM-dd hh-mm")}.db";
@@ -47,7 +57,7 @@ namespace LemmyNanny
             builder.Services.AddSingleton<IOllamaApiClient>(pro =>
             {
                 var http = pro.GetRequiredService<IHttpClientFactory>();
-                var client = new OllamaApiClient(http.CreateClient(OllamaManager.CLIENT_NAME), builder.Configuration["OllamaModel"] ?? throw new Exception("OllamaModel not set"));
+                var client = new OllamaApiClient(http.CreateClient(OllamaManager.CLIENT_NAME), model ?? throw new Exception("OllamaModel not set"));
                 return client;
             });
             builder.Services.AddSingleton<IOllamaManager>(pro => new OllamaManager(pro.GetRequiredService<IOllamaApiClient>(), builder.Configuration["Prompt"] ?? throw new Exception("Prompt not set")));
@@ -70,6 +80,7 @@ namespace LemmyNanny
                 AnsiConsole.Write(consoleImage);
             }
             AnsiConsole.WriteLine("Welcome to LemmyNanny!");
+
             host.Run();
         }
     }

@@ -13,20 +13,23 @@ namespace LemmyNanny
         private readonly IOllamaManager _ollamaManager;
         private readonly ILemmyManager _lemmyManager;
         private readonly IWebhooksManager _webhooks;
+        private readonly StartUpStats _startUpStats;
   
-        public LemmyNannyWorker(IHistoryManager historyManager, IImagesManager imagesManager, IOllamaManager ollamaManager, ILemmyManager lemmyManager, IWebhooksManager webhooks)
+        public LemmyNannyWorker(IHistoryManager historyManager, IImagesManager imagesManager, IOllamaManager ollamaManager, ILemmyManager lemmyManager, IWebhooksManager webhooks, StartUpStats stats)
         {
             _historyManager = historyManager;
             _imagesManager = imagesManager;
             _ollamaManager = ollamaManager;
             _lemmyManager = lemmyManager;
             _webhooks = webhooks;
+            _startUpStats = stats;
         }
 
         protected override async Task ExecuteAsync(CancellationToken cancellationToken)
         {
 
             _historyManager.SetupDatabase();
+            await _webhooks.SendStartupStats(_startUpStats);
 
             while (!cancellationToken.IsCancellationRequested)
             {

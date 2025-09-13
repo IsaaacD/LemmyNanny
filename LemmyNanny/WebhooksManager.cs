@@ -34,6 +34,31 @@ namespace LemmyNanny
             _readingMode = readingMode;
         }
 
+        public async Task SendStartupStats(StartUpStats stats)
+        {
+            if (_urls.Count != 0)
+            {
+                foreach (var config in _urls)
+                {
+                    if (config.ShouldProcess)
+                    {
+                        try
+                        {
+                            var jsonContent = JsonContent.Create(stats);
+                            jsonContent.Headers.Add("ClientSecret", config.Secret);
+                            await _httpClient.PostAsync(config.StartupUrl, jsonContent);
+                            AnsiConsole.WriteLine($"Forwarded JsonContent to {config.StartupUrl} succesfully.");
+                            config.FailedTimes = 0;
+                        }
+                        catch (Exception)
+                        {
+                            AnsiConsole.MarkupLineInterpolated($"[red]***There was an issue sending to {config.StartupUrl} webhook. ***[/]");
+                        }
+                    }
+                }
+            }
+        }
+
         public async Task SendToWebhooksAndUpdateStats(Processed processed)
         {
             switch (processed.ProcessedType)
@@ -86,14 +111,14 @@ namespace LemmyNanny
                         {
                             var jsonContent = JsonContent.Create(processed);
                             jsonContent.Headers.Add("ClientSecret", config.Secret);
-                            await _httpClient.PostAsync(config.Url, jsonContent);
-                            AnsiConsole.WriteLine($"Forwarded JsonContent to {config.Url} succesfully.");
+                            await _httpClient.PostAsync(config.FeedUrl, jsonContent);
+                            AnsiConsole.WriteLine($"Forwarded JsonContent to {config.FeedUrl} succesfully.");
                             config.FailedTimes = 0;
                         }
                         catch (Exception)
                         {
                             config.FailedTimes++;
-                            AnsiConsole.MarkupLineInterpolated($"[red]***There was an issue sending to {config.Url} webhook. Failed {config.FailedTimes} times.***[/]");
+                            AnsiConsole.MarkupLineInterpolated($"[red]***There was an issue sending to {config.FeedUrl} webhook. Failed {config.FailedTimes} times.***[/]");
                         }
                     }
                 }

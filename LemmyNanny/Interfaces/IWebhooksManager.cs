@@ -10,5 +10,6 @@
         int PostsFlagged { get; }
         DateTime StartTime { get; }
         Task SendToWebhooksAndUpdateStats(Processed processed);
+        Task SendStartupStats(StartUpStats stats);
     }
 }
