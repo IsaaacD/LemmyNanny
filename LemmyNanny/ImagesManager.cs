@@ -21,6 +21,9 @@ namespace LemmyNanny
             // https://europe.pub/post/4381176
 
             // another issue "Failed to check"
+
+            // this one worked but no body https://lemmy.world/post/35686878
+            // this one worked and full body https://programming.dev/post/37153435
         }
 
         public async Task<PromptContent> GetImageBytes(PromptContent content, CancellationToken token)
