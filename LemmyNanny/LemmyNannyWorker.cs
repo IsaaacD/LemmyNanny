@@ -49,7 +49,7 @@ namespace LemmyNanny
 
 
                         AnsiConsole.WriteLine("");
-                        var postInfo = $"This is the post:```\r\nTitle: {post.Post.Name}\r\nBody: {post.Post.Body}```";
+                        var postInfo = $"This is the post:```{Environment.NewLine}Title: {post.Post.Name}{Environment.NewLine}Body: {post.Post.Body}```";
 
                         AnsiConsole.WriteLine(postInfo);
                         AnsiConsole.WriteLine($"{post.Counts.Comments} comments on post.");
@@ -116,9 +116,15 @@ namespace LemmyNanny
                                 {
                                     AnsiConsole.WriteLine($"{DateTime.Now}: Checking comments from {post!.Post.Id}");
                                     var comments = await _lemmyManager.GetCommentsFromPost(post.Post.Id, currentPage++, cancellationToken);
-                                    AnsiConsole.WriteLine($"{DateTime.Now}: found {comments.Comments.Length} comments");
+                                    AnsiConsole.WriteLine($"{DateTime.Now}: found {comments?.Comments?.Length ?? 0} comments from page {currentPage}.");
+                                    var anyComments = comments?.Comments?.Any() ?? false;
 
-                                    foreach (var commentView in comments.Comments)
+                                    if (!anyComments)
+                                    {
+                                        break;
+                                    }
+
+                                    foreach (var commentView in comments?.Comments ?? [])
                                     {
                                         var commentNumber = $"{++currentCount}/{post.Counts.Comments}";
                                         AnsiConsole.WriteLine($"Processing {commentNumber} comments.");
