@@ -82,6 +82,7 @@ namespace LemmyNanny
             AnsiConsole.WriteLine("Welcome to LemmyNanny!");
 
             host.Run();
+            //new WebSocketConsumer("https://lemmynanny.ca/lemmynanny").ConnectAndReceive().Wait();
         }
     }
 }
