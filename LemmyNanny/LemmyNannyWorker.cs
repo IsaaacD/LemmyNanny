@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace LemmyNanny
 {
+    [Obsolete("Use LemmyNannyOperator instead")]
     public class LemmyNannyWorker : BackgroundService
     {
         private readonly IHistoryManager _historyManager;
@@ -33,16 +34,16 @@ namespace LemmyNanny
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                var postResponse = await _lemmyManager.GetNextPosts(cancellationToken);
+                var postResponse = await _lemmyManager.GetNextPosts(cancellationToken); // should be NextPostsResponse with data so can map to WebsocketConsumer
 
-                AnsiConsole.WriteLine($"{DateTime.Now}: Checking {postResponse.Posts?.Length ?? 0} posts");
-                if(postResponse.Posts == null)
+                AnsiConsole.WriteLine($"{DateTime.Now}: Checking {postResponse.Count} posts");
+                if(postResponse == null)
                 {
                     _lemmyManager.ResetLastPostPage();
                 }
                 else
                 {
-                    foreach (var postView in postResponse.Posts)
+                    foreach (var postView in postResponse)
                     {
                         var post = postView;
                         var hasRecord = _historyManager.HasPostRecord(post.Post.Id, out _);
@@ -67,18 +68,18 @@ namespace LemmyNanny
 
                             promptContent = await _imagesManager.GetImageBytes(promptContent, cancellationToken);
 
-                            var content = await _ollamaManager.CheckContent( promptContent, cancellationToken );
+                            var promptResponse = await _ollamaManager.CheckContent( promptContent, cancellationToken );
 
                             AnsiConsole.WriteLine("");
 
-                            if (!content.ReportThis)
+                            if (!promptResponse.ReportThis)
                             {
                                 AnsiConsole.WriteLine($"{DateTime.Now}: Found 'No', did not report {post?.Post?.Id}.");
                             }
                             else
                             {
                                 AnsiConsole.WriteLine("");
-                                AnsiConsole.MarkupInterpolated($"{DateTime.Now}: [yellow]Found 'Yes', time to report {post?.Post?.Id!} with resultOutput={content.Result}[/]");
+                                AnsiConsole.MarkupInterpolated($"{DateTime.Now}: [yellow]Found 'Yes', time to report {post?.Post?.Id!} with resultOutput={promptResponse.Result}[/]");
                                 AnsiConsole.WriteLine("");
                                 await _lemmyManager.TryPostReport(promptContent, cancellationToken);
                             }
@@ -86,7 +87,7 @@ namespace LemmyNanny
                             var processedPost = new Processed
                             {
                                 Id = post!.Post.Id,
-                                Reason = content.Result,
+                                Reason = promptResponse.Result,
                                 Url = post.Post.ApId,
                                 Title = post.Post.Name,
                                 Content = post.Post.Body,
@@ -99,8 +100,8 @@ namespace LemmyNanny
                                 ThumbnailUrl = post.Post.ThumbnailUrl,
                                 CommentNumber = post.Counts.Comments.ToString(),
                                 CommunityName= post.Community.Name,
-                                Failed = content.Failed,
-                                ViewedImages = content.ImagesProcessed > 0,
+                                Failed = promptResponse.Failed,
+                                ViewedImages = promptResponse.ImagesProcessed > 0,
                                 ExtraInfo = $"Processed {_webhooks.Posts} posts and {_webhooks.Comments} comments in {_webhooks.ElapsedTime.ToReadableString()}."
                             };
 
@@ -135,9 +136,9 @@ namespace LemmyNanny
                                             var commentContent = new PromptContent { Id = commentView.Comment.Id, Content = $"This is the comment: ```{commentView.Comment.Content}```" };
                                             commentContent = await _imagesManager.GetImageBytes(commentContent, cancellationToken);
 
-                                            var results = await _ollamaManager.CheckContent(commentContent, cancellationToken);
+                                            var commentResponse = await _ollamaManager.CheckContent(commentContent, cancellationToken);
 
-                                            if (results.ReportThis)
+                                            if (commentResponse.ReportThis)
                                             {
                                                 await _lemmyManager.TryCommentReport(commentContent, cancellationToken);
                                             }
@@ -147,7 +148,7 @@ namespace LemmyNanny
                                                 PostId = commentView.Comment.PostId,
                                                 Title = commentView.Post.Name,
                                                 Url = commentView.Comment.ApId, 
-                                                Reason = results.Result ?? "" ,
+                                                Reason = commentResponse.Result ?? "" ,
                                                 ProcessedType = ProcessedType.Comment,
                                                 Username = commentView.Creator.DisplayName ?? commentView.Creator.Name,
                                                 AvatarUrl = commentView.Creator.Avatar,
@@ -156,8 +157,8 @@ namespace LemmyNanny
                                                 CreatedDate = commentView.Comment.Published,
                                                 PostUrl = post.Post.ApId,
                                                 CommentNumber = commentNumber, 
-                                                Failed = results.Failed,
-                                                ViewedImages = results.ImagesProcessed > 0,
+                                                Failed = commentResponse.Failed,
+                                                ViewedImages = commentResponse.ImagesProcessed > 0,
                                                 ExtraInfo = $"Processed {_webhooks.Posts} posts and {_webhooks.Comments} comments in {_webhooks.ElapsedTime.ToReadableString()}."
                                             };
                                             _historyManager.AddCommentRecord(processedComment);

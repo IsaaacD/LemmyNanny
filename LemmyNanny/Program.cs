@@ -19,25 +19,56 @@ namespace LemmyNanny
             var sortType = builder.Configuration["SortType"] ?? "Active";
             var listingType = builder.Configuration["ListingType"] ?? "All";
             var model = builder.Configuration["OllamaModel"];
-            builder.Services.AddHostedService(provider =>
-                new LemmyNannyWorker(provider.GetRequiredService<IHistoryManager>(), 
-                provider.GetRequiredService<IImagesManager>(),
-                provider.GetRequiredService<IOllamaManager>(),
-                provider.GetRequiredService<ILemmyManager>(),
-                provider.GetRequiredService<IWebhooksManager>(),
-                new StartUpStats
-                {
-                    LemmyHost = builder.Configuration["LemmyHost"]!,
-                     ListingType = listingType,
-                     SortType = sortType,
-                     Model = model!,
-                     Prompt = builder.Configuration["Prompt"]!,
-                     StartTime = DateTime.UtcNow,
-                     ReadingMode = builder.Configuration.GetValue<bool>("ReadingMode")
-                }));
+            var useLemmyWebhooks = builder.Configuration["LemmyWebhooks"];
 
-            var dbName = builder.Configuration["SqliteDb"] // defaults to SqliteDb value, if not present makes a new db
-                ?? $"LemmyNanny-{sortType}-{listingType}-{DateTime.Now.ToString("yyyy-MM-dd hh-mm")}.db";
+            if (!string.IsNullOrEmpty(useLemmyWebhooks))
+            {
+                builder.Services.AddSingleton<ILemmyConsumer, WebSocketConsumer>(prov => new WebSocketConsumer(useLemmyWebhooks, prov.GetRequiredService<ILemmyManager>()));
+                builder.Services.AddHostedService(prov => new WebSocketConsumer(useLemmyWebhooks, prov.GetRequiredService<ILemmyManager>()));
+            }
+            else
+            {
+                builder.Services.AddSingleton<ILemmyConsumer, HttpRestConsumer>();
+                builder.Services.AddHostedService<HttpRestConsumer>();
+            }
+
+            builder.Services.AddHostedService(provider =>
+            {
+                return new LemmyNannyOperator(provider.GetRequiredService<IHistoryManager>(),
+                    provider.GetRequiredService<IImagesManager>(),
+                    provider.GetRequiredService<IOllamaManager>(),
+                    provider.GetRequiredService<IWebhooksManager>(),
+                    provider.GetRequiredService<ILemmyManager>(),
+                    new StartUpStats
+                    {
+                        LemmyHost = builder.Configuration["LemmyHost"]!,
+                        ListingType = listingType,
+                        SortType = sortType,
+                        Model = model!,
+                        Prompt = builder.Configuration["Prompt"]!,
+                        StartTime = DateTime.UtcNow,
+                        ReadingMode = builder.Configuration.GetValue<bool>("ReadingMode")
+                    });
+            });
+                //builder.Services.AddHostedService(provider =>
+                //    new LemmyNannyWorker(provider.GetRequiredService<IHistoryManager>(), 
+                //    provider.GetRequiredService<IImagesManager>(),
+                //    provider.GetRequiredService<IOllamaManager>(),
+                //    provider.GetRequiredService<ILemmyManager>(),
+                //    provider.GetRequiredService<IWebhooksManager>(),
+                //    new StartUpStats
+                //    {
+                //        LemmyHost = builder.Configuration["LemmyHost"]!,
+                //         ListingType = listingType,
+                //         SortType = sortType,
+                //         Model = model!,
+                //         Prompt = builder.Configuration["Prompt"]!,
+                //         StartTime = DateTime.UtcNow,
+                //         ReadingMode = builder.Configuration.GetValue<bool>("ReadingMode")
+                //    }));
+
+                var dbName = builder.Configuration["SqliteDb"] // defaults to SqliteDb value, if not present makes a new db
+                    ?? $"LemmyNanny-{sortType}-{listingType}-{DateTime.Now.ToString("yyyy-MM-dd hh-mm")}.db";
             
             builder.Services.AddHttpClient(OllamaManager.CLIENT_NAME,
                 client =>
@@ -82,6 +113,7 @@ namespace LemmyNanny
             AnsiConsole.WriteLine("Welcome to LemmyNanny!");
 
             host.Run();
+            //new WebSocketConsumer().ConnectAndReceive().Wait();
         }
     }
 }
