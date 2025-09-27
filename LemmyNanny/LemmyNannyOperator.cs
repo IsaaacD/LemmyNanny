@@ -34,6 +34,11 @@ namespace LemmyNanny
                     };
                     promptContent = await imagesManager.GetImageBytes(promptContent, stoppingToken);
 
+                    while (ollamaManager.IsBusy)
+                    {
+                        await Task.Delay(1000);
+                    }
+
                     var promptResponse = await ollamaManager.CheckContent(promptContent, stoppingToken);
 
                     AnsiConsole.WriteLine("");
@@ -82,6 +87,11 @@ namespace LemmyNanny
                     var commentContent = new PromptContent { Id = commentView.Comment.Id, Content = $"This is the comment: ```{commentView.Comment.Content}```" };
                     commentContent = await imagesManager.GetImageBytes(commentContent, stoppingToken);
 
+                    while (ollamaManager.IsBusy)
+                    {
+                        await Task.Delay(1000);
+                    }
+
                     var commentResponse = await ollamaManager.CheckContent(commentContent, stoppingToken);
 
                     if (commentResponse.ReportThis)
@@ -102,8 +112,8 @@ namespace LemmyNanny
                         ProcessedOn = DateTime.UtcNow,
                         CommunityName = commentView.Community.Name,
                         CreatedDate = commentView.Comment.Published,
-                        PostUrl = post.Post.ApId,
-                        //CommentNumber = commentNumber,
+                        PostUrl = commentView.Post.ApId,
+                        CommentNumber = " ",
                         Failed = commentResponse.Failed,
                         ViewedImages = commentResponse.ImagesProcessed > 0,
                         ExtraInfo = $"Processed {webhooks.Posts} posts and {webhooks.Comments} comments in {webhooks.ElapsedTime.ToReadableString()}."
