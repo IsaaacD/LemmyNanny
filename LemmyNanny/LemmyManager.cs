@@ -39,13 +39,39 @@ namespace LemmyNanny
             {
                 if (retry < 3)
                 {
-                    AnsiConsole.WriteLine($"{DateTime.Now}: Failed {nameof(GetNextPosts)}, retrying");
+                    AnsiConsole.WriteLine($"{DateTime.Now}: Failed {nameof(GetPost)}, retrying");
                     await Task.Delay(100);
                     return await GetPost(id, token, ++retry);
                 }
                 else
                 {
                     return await Task.FromResult(new PostView());
+                }
+            }
+        }
+
+        public async Task<CommentView> GetComment(int id, CancellationToken token = default, int retry = 0)
+        {
+            try
+            {
+                var form = new GetCommentForm() { Id = id };
+                
+
+                var getPostsResponse = await _lemmyHttpClient.GetComment(form, token);
+
+                return getPostsResponse.CommentView;
+            }
+            catch (Exception)
+            {
+                if (retry < 3)
+                {
+                    AnsiConsole.WriteLine($"{DateTime.Now}: Failed {nameof(GetComment)}, retrying");
+                    await Task.Delay(100);
+                    return await GetComment(id, token, ++retry);
+                }
+                else
+                {
+                    return await Task.FromResult(new CommentView());
                 }
             }
         }

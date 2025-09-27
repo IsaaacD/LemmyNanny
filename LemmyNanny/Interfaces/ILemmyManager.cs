@@ -11,5 +11,7 @@ namespace LemmyNanny.Interfaces
         Task<bool> TryPostReport(PromptContent content, CancellationToken token);
         Task<GetCommentsResponse> GetCommentsFromPost(int id, int page=1, CancellationToken token = default, int retry = 0);
         Task<bool> TryCommentReport(PromptContent content, CancellationToken token);
+        Task<PostView> GetPost(int id, CancellationToken token = default, int retry = 0);
+        Task<CommentView> GetComment(int id, CancellationToken token = default, int retry = 0);
     }
 }

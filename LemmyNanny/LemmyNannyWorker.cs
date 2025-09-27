@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 
 namespace LemmyNanny
 {
+    [Obsolete("Use LemmyNannyOperator instead")]
     public class LemmyNannyWorker : BackgroundService
     {
         private readonly IHistoryManager _historyManager;
