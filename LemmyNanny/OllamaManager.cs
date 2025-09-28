@@ -13,6 +13,8 @@ namespace LemmyNanny
         private readonly IOllamaApiClient _ollamaApiClient;
         private string _fullPrompt => $"{_prompt}{Environment.NewLine}The first word you ouput will be 'Yes' or 'No'. Please output only 'Yes' if community violation occurred or only 'No', then guide based on this given prompt."; //if the content is safe. After 'Yes', expand on what the post is about and violations that occurred.";
 
+        public bool IsBusy { get; private set; }
+
         public OllamaManager(IOllamaApiClient ollamaApiClient, string prompt)
         {
             _prompt = prompt;
@@ -22,6 +24,7 @@ namespace LemmyNanny
         public async Task<PromptResponse> CheckContent(PromptContent content, CancellationToken cancellation = default)
         {
             var promptResponse = new PromptResponse();
+            IsBusy = true;
             try
             {
                 var chat = new Chat(_ollamaApiClient, _fullPrompt);
@@ -46,7 +49,7 @@ namespace LemmyNanny
             }
 
             content.PromptResponse = promptResponse;
-
+            IsBusy = false;
             return promptResponse;
         }
 

@@ -25,7 +25,58 @@ namespace LemmyNanny
             _lastPostPage = string.Empty;
         }
 
-        public async Task<GetPostsResponse> GetNextPosts(CancellationToken token = default, int retry = 0)
+        public async Task<PostView> GetPost(int id, CancellationToken token = default, int retry = 0)
+        {
+            try
+            {
+                var form = new GetPostForm() { Id = id };
+
+                var getPostsResponse = await _lemmyHttpClient.GetPost(form, token);
+
+                return getPostsResponse.PostView;
+            }
+            catch (Exception)
+            {
+                if (retry < 3)
+                {
+                    AnsiConsole.WriteLine($"{DateTime.Now}: Failed {nameof(GetPost)}, retrying");
+                    await Task.Delay(100);
+                    return await GetPost(id, token, ++retry);
+                }
+                else
+                {
+                    return await Task.FromResult(new PostView());
+                }
+            }
+        }
+
+        public async Task<CommentView> GetComment(int id, CancellationToken token = default, int retry = 0)
+        {
+            try
+            {
+                var form = new GetCommentForm() { Id = id };
+                
+
+                var getPostsResponse = await _lemmyHttpClient.GetComment(form, token);
+
+                return getPostsResponse.CommentView;
+            }
+            catch (Exception)
+            {
+                if (retry < 3)
+                {
+                    AnsiConsole.WriteLine($"{DateTime.Now}: Failed {nameof(GetComment)}, retrying");
+                    await Task.Delay(100);
+                    return await GetComment(id, token, ++retry);
+                }
+                else
+                {
+                    return await Task.FromResult(new CommentView());
+                }
+            }
+        }
+
+        public async Task<List<PostView>> GetNextPosts(CancellationToken token = default, int retry = 0)
         {
             try
             {
@@ -37,7 +88,20 @@ namespace LemmyNanny
                 }
                 var getPostsResponse = await _lemmyHttpClient.GetPosts(form, token);
                 _lastPostPage = getPostsResponse.NextPage;
-                return getPostsResponse;
+                //var response = getPostsResponse.Posts.Select(o =>
+                //new Post
+                //{ 
+                //    data = new PostData
+                //    {
+                //        apId = o.Post.ApId,
+                //        body = o.Post.Body,
+                //        name = o.Post.Name,
+                //        url = o.Post.Url,
+                //        id = o.Post.Id,
+                        
+                //    }
+                //});
+                return getPostsResponse.Posts.ToList();
             }
             catch (Exception)
             {
@@ -49,7 +113,7 @@ namespace LemmyNanny
                 }
                 else
                 {
-                    return await Task.FromResult(new GetPostsResponse());
+                    return await Task.FromResult(new List<PostView>());
                 }
             }
 
@@ -125,6 +189,11 @@ namespace LemmyNanny
                 AnsiConsole.WriteLine($"{DateTime.Now}: No username, skipped reporting {content.Id}.");
                 return false;
             }
+        }
+
+        public async Task Setup()
+        {
+            await Task.FromResult(Task.CompletedTask);
         }
     }
 }
