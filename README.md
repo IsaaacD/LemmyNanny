@@ -3,6 +3,8 @@
 ![LemmyNanny Logo](Docs/LemmyNannyLogo.png "Logo for LemmyNanny")
 
 
+
+
 LemmyNanny is a simple app to help monitor Lemmy instances using AI!
 
 It's a highly configurable tool for any admin or mod. Choose your model and prompt, then let it rip!
@@ -23,7 +25,7 @@ Just configure `appsettings.json` and run the app!
 }
 
 ```
-SortType and ListingType can be of the following:
+SortType and ListingType can be of the following:   
 ```
 public enum SortType
 {
@@ -57,3 +59,71 @@ Made using
 - 🧑‍💻 dotNETLemmy
 - 📅 SQLite
 
+## Simple configuration
+![LemmyNanny Data Flow](Docs/LemmyNannyDataFlow2.png "Lemmy Nanny Dataflow")
+
+## More complex flow
+![LemmyNanny Data Flow](Docs/LemmyNannyDataFlow.png "Lemmy Nanny Dataflow")
+
+## RealTime Websockets Mermaid.js markup
+```mermaidjs
+graph LR
+    subgraph waterloolemmy.ca
+        A[Lemmy] --> B(LemmyWebhook)
+    end
+    subgraph lemmynanny.ca
+    B -- HTTP POST --> C(LemmyNannyWeb)
+    end
+    D -- HTTP POST --> C
+    C -- Websocket --> D
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#ccf,stroke:#333,stroke-width:2px
+    style C fill:#fcc,stroke:#333,stroke-width:2px
+    style D fill:#cfc,stroke:#333,stroke-width:2px
+    style E fill:#eee,stroke:#333,stroke-width:2px
+
+    subgraph On-Premise Processing
+      direction TB
+      D[LemmyNanny] -- API Call --> E[Ollama]
+      E --> D
+      D -- Report (optional) --> A
+    end
+
+    classDef onprem fill:#eee,stroke:#333,stroke-width:2px
+    class D,E onprem
+
+    classDef blacktext text:#000000;
+    class A,B,C,D,E blacktext;
+
+```
+
+## HTTP Request Mermaid.js markup
+```mermaidjs
+graph LR
+    subgraph waterloolemmy.ca
+        A[Lemmy]
+    end
+    subgraph lemmynanny.ca
+    C(LemmyNannyWeb)
+    end
+    D -- HTTP POST --> C
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#fcc,stroke:#333,stroke-width:2px
+    style D fill:#cfc,stroke:#333,stroke-width:2px
+    style E fill:#eee,stroke:#333,stroke-width:2px
+
+    subgraph On-Premise Processing
+      direction TB
+      D[LemmyNanny] -- API Call --> E[Ollama]
+      E --> D
+      D -- Report (optional) --> A
+      A -- Pull Data (HTTP GET) --> D
+    end
+
+    classDef onprem fill:#eee,stroke:#333,stroke-width:2px
+    class D,E onprem
+
+    classDef blacktext text:#000000;
+    class A,C,D,E blacktext;
+
+```
